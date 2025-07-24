@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "RTL Helper for Notion & Claude",
+  "version": "2.0.0",
+  "description": "Automatically sets text direction to RTL for Hebrew content in Notion and Claude.",
+  "author": "Your Name",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.notion.so/*", "https://claude.ai/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
