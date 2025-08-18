@@ -1,12 +1,13 @@
-# RTL Helper for Notion & Claude
+# RTL Helper for Notion, Claude & Gemini
 
-A Chrome browser extension that automatically applies RTL (Right-to-Left) text direction for Hebrew content on Notion and Claude AI websites. Features an elegant dropdown interface with complete user control over functionality.
+A Chrome browser extension that automatically applies RTL (Right-to-Left) text direction for Hebrew content on Notion, Claude AI, and Gemini Canvas websites. Features an elegant dropdown interface with complete user control over functionality.
 
 ## ✨ Features
 
 ### 🌐 Multi-Website Support
 - **Notion**: Full support for all Notion pages with Hebrew content
 - **Claude AI**: Seamless RTL support for conversations with Hebrew text
+- **Gemini Canvas**: Full RTL support for Gemini's immersive editor and canvas interface
 - **Smart Detection**: Automatically detects Hebrew text while ignoring emojis and symbols
 
 ### 🎛️ Advanced User Interface
@@ -35,6 +36,9 @@ The extension seamlessly integrates with Notion, applying RTL formatting to Hebr
 ### Claude AI Support  
 Hebrew conversations in Claude AI are automatically formatted with proper RTL alignment, making Hebrew text much more readable.
 
+### Gemini Canvas Support
+Gemini's immersive editor and canvas documents with Hebrew content are properly formatted with RTL alignment, including headers, paragraphs, and lists.
+
 ### Dropdown Interface
 Clean, modern dropdown menu provides easy access to all controls without cluttering the interface.
 
@@ -58,7 +62,7 @@ Clean, modern dropdown menu provides easy access to all controls without clutter
    - The extension should now appear in your extensions list
 
 4. **Verify Installation**
-   - Visit any Notion page or Claude AI
+   - Visit any Notion page, Claude AI, or Gemini Canvas
    - Look for the 🔤 button in the top-right corner
 
 ### Option 2: Chrome Web Store (Coming Soon)
@@ -94,13 +98,14 @@ The extension will be available on the Chrome Web Store for easy one-click insta
 |---------|-------------|----------|
 | **Notion** | `https://www.notion.so/*` | Block-level RTL, List formatting, Dynamic content |
 | **Claude AI** | `https://claude.ai/*` | Message RTL, Conversation formatting, Real-time updates |
+| **Gemini Canvas** | `https://gemini.google.com/*` | Canvas RTL, Headers, Lists, Immersive editor support |
 
 ## 🛠️ Technical Details
 
 ### Architecture
 - **Manifest Version**: 3 (latest Chrome extension standard)
 - **Permissions**: `storage` (for preferences), website access
-- **Content Scripts**: Runs on Notion and Claude domains
+- **Content Scripts**: Runs on Notion, Claude, and Gemini domains
 - **No Background Scripts**: Lightweight, efficient operation
 
 ### Browser Compatibility
@@ -132,7 +137,7 @@ RTL-Chrome-Extension/
 
 ### Debugging
 - **Console Logs**: Check browser console for extension messages
-- **Extension Logs**: Look for "RTL Helper v2.0.0 is loaded..." messages
+- **Extension Logs**: Look for "RTL Helper v2.1.0 is loaded..." messages
 - **Storage Inspector**: Use Chrome DevTools to inspect extension storage
 
 ## 🤝 Contributing
@@ -160,7 +165,13 @@ We welcome contributions! Here's how you can help:
 
 ## 📝 Changelog
 
-### Version 2.0.0 (Current)
+### Version 2.1.0 (Current)
+- ✅ Added Gemini Canvas support
+- ✅ Enhanced text element detection for immersive editors
+- ✅ Improved list formatting for all supported websites
+- ✅ Updated documentation for multi-website support
+
+### Version 2.0.0 (Previous)
 - ✅ Added Claude AI website support
 - ✅ Redesigned UI with elegant dropdown menu
 - ✅ Added complete interface hiding functionality
@@ -180,7 +191,7 @@ We welcome contributions! Here's how you can help:
 ### Common Issues
 
 **Extension not working on specific pages?**
-- Ensure you're on a supported website (Notion or Claude)
+- Ensure you're on a supported website (Notion, Claude, or Gemini)
 - Check that the extension is enabled in Chrome
 - Try refreshing the page
 

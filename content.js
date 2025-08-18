@@ -1,7 +1,8 @@
 /**
- * RTL Helper for Notion & Claude
- * Version 2.0.0: Added support for Claude website and enable/disable toggle.
- * This script runs on Notion and Claude pages and aligns text blocks to RTL
+ * RTL Helper for Notion, Claude & Gemini
+ * Version 2.1.0: Added support for Gemini Canvas.
+ * Last update: 2025-08-18
+ * This script runs on Notion, Claude, and Gemini pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
  */
 
@@ -21,10 +22,14 @@ function findFirstLetter(str) {
 
 /**
  * Determines the current website type
- * @returns {string} 'notion' or 'claude'
+ * @returns {string} 'notion', 'claude', or 'gemini'
  */
 function getWebsiteType() {
-  return window.location.hostname === 'www.notion.so' ? 'notion' : 'claude';
+  const hostname = window.location.hostname;
+  if (hostname === 'www.notion.so') return 'notion';
+  if (hostname === 'claude.ai') return 'claude';
+  if (hostname === 'gemini.google.com') return 'gemini';
+  return 'unknown';
 }
 
 /**
@@ -118,6 +123,64 @@ function alignClaudeBlocks() {
 }
 
 /**
+ * Applies RTL styling to Gemini Canvas blocks
+ */
+function alignGeminiBlocks() {
+  // Target Gemini Canvas content areas
+  const canvasSelectors = [
+    '.ProseMirror',
+    '.immersive-editor',
+    '.immersive-editor-container',
+    '[contenteditable="true"]',
+    'immersive-editor',
+    'extended-response-panel',
+    '.response-container-content'
+  ];
+
+  const canvasBlocks = document.querySelectorAll(canvasSelectors.join(', '));
+
+  canvasBlocks.forEach(block => {
+    if (block.dataset.rtlChecked) {
+      return;
+    }
+
+    // Process all text elements within the Canvas
+    const textElements = block.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, div, span');
+    
+    textElements.forEach(element => {
+      // Skip if already processed
+      if (element.dataset.rtlProcessed) return;
+      
+      const text = element.textContent.trim();
+      if (text.length > 0) {
+        const firstLetter = findFirstLetter(text);
+
+        if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+          element.style.direction = 'rtl';
+          element.style.textAlign = 'right';
+          
+          // Handle list items specially
+          if (element.tagName === 'LI') {
+            element.style.paddingRight = '20px';
+            element.style.paddingLeft = '0';
+          }
+          
+          // Handle nested ul/ol within lists
+          if (element.tagName === 'UL' || element.tagName === 'OL') {
+            element.style.paddingRight = '20px';
+            element.style.paddingLeft = '0';
+          }
+        }
+        
+        element.dataset.rtlProcessed = 'true';
+      }
+    });
+
+    block.dataset.rtlChecked = 'true';
+  });
+}
+
+/**
  * Main function to align Hebrew blocks based on website type
  */
 function alignHebrewBlocks() {
@@ -129,6 +192,8 @@ function alignHebrewBlocks() {
     alignNotionBlocks();
   } else if (websiteType === 'claude') {
     alignClaudeBlocks();
+  } else if (websiteType === 'gemini') {
+    alignGeminiBlocks();
   }
 }
 
@@ -494,6 +559,28 @@ function resetRTLStyling() {
       
       delete block.dataset.rtlChecked;
     });
+  } else if (websiteType === 'gemini') {
+    // Reset Gemini Canvas styling
+    const canvasSelectors = [
+      '.ProseMirror[data-rtl-checked]',
+      '.immersive-editor[data-rtl-checked]',
+      '.immersive-editor-container[data-rtl-checked]',
+      '[contenteditable="true"][data-rtl-checked]'
+    ];
+    
+    const blocks = document.querySelectorAll(canvasSelectors.join(', '));
+    blocks.forEach(block => {
+      const textElements = block.querySelectorAll('[data-rtl-processed]');
+      textElements.forEach(element => {
+        element.style.direction = '';
+        element.style.textAlign = '';
+        element.style.paddingRight = '';
+        element.style.paddingLeft = '';
+        delete element.dataset.rtlProcessed;
+      });
+      
+      delete block.dataset.rtlChecked;
+    });
   }
 }
 
@@ -544,7 +631,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`RTL Helper v2.0.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Menu: ${menuHidden ? 'HIDDEN' : 'VISIBLE'}`);
+    console.log(`RTL Helper v2.1.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Menu: ${menuHidden ? 'HIDDEN' : 'VISIBLE'}`);
   });
 }
 
