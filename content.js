@@ -1,6 +1,6 @@
 /**
  * RTL Helper for Notion, Claude & Gemini
- * Version 2.1.0: Added support for Gemini Canvas.
+ * Version 2.1.1: Fixed Gemini Canvas detection and RTL application.
  * Last update: 2025-08-18
  * This script runs on Notion, Claude, and Gemini pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -126,58 +126,116 @@ function alignClaudeBlocks() {
  * Applies RTL styling to Gemini Canvas blocks
  */
 function alignGeminiBlocks() {
-  // Target Gemini Canvas content areas
+  // Debug logging
+  console.log('RTL Helper: Checking for Gemini content...');
+  
+  // Target Gemini Canvas content areas - more specific selectors
   const canvasSelectors = [
     '.ProseMirror',
-    '.immersive-editor',
-    '.immersive-editor-container',
-    '[contenteditable="true"]',
-    'immersive-editor',
-    'extended-response-panel',
-    '.response-container-content'
+    '.immersive-editor.markdown',
+    'immersive-editor .immersive-editor-container',
+    '.immersive-editor-container .ProseMirror',
+    '[contenteditable="true"].ProseMirror',
+    'immersive-panel',
+    'extended-response-panel'
   ];
 
-  const canvasBlocks = document.querySelectorAll(canvasSelectors.join(', '));
-
-  canvasBlocks.forEach(block => {
-    if (block.dataset.rtlChecked) {
-      return;
-    }
-
-    // Process all text elements within the Canvas
-    const textElements = block.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, div, span');
-    
-    textElements.forEach(element => {
-      // Skip if already processed
-      if (element.dataset.rtlProcessed) return;
+  // Try each selector individually for better debugging
+  let foundElements = false;
+  canvasSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      console.log(`RTL Helper: Found ${elements.length} elements with selector: ${selector}`);
+      foundElements = true;
       
-      const text = element.textContent.trim();
-      if (text.length > 0) {
-        const firstLetter = findFirstLetter(text);
-
-        if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
-          element.style.direction = 'rtl';
-          element.style.textAlign = 'right';
-          
-          // Handle list items specially
-          if (element.tagName === 'LI') {
-            element.style.paddingRight = '20px';
-            element.style.paddingLeft = '0';
-          }
-          
-          // Handle nested ul/ol within lists
-          if (element.tagName === 'UL' || element.tagName === 'OL') {
-            element.style.paddingRight = '20px';
-            element.style.paddingLeft = '0';
-          }
+      elements.forEach(block => {
+        // Skip if already checked
+        if (block.dataset.rtlChecked) {
+          return;
         }
         
-        element.dataset.rtlProcessed = 'true';
-      }
-    });
-
-    block.dataset.rtlChecked = 'true';
+        // For ProseMirror specifically, we need to handle it differently
+        if (block.classList.contains('ProseMirror') || selector.includes('ProseMirror')) {
+          // Process direct children for better control
+          const directElements = block.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, ul, ol, blockquote, code');
+          
+          directElements.forEach(element => {
+            // Skip if already processed
+            if (element.dataset.rtlProcessed) return;
+            
+            const text = element.textContent.trim();
+            if (text.length > 0) {
+              const firstLetter = findFirstLetter(text);
+              
+              if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+                console.log(`RTL Helper: Applying RTL to element: ${element.tagName}, text: ${text.substring(0, 50)}...`);
+                
+                element.style.direction = 'rtl';
+                element.style.textAlign = 'right';
+                
+                // Handle list items specially
+                if (element.tagName === 'LI') {
+                  element.style.paddingRight = '20px';
+                  element.style.paddingLeft = '0';
+                  // Also check parent list
+                  const parentList = element.closest('ul, ol');
+                  if (parentList && !parentList.dataset.rtlProcessed) {
+                    parentList.style.direction = 'rtl';
+                    parentList.style.paddingRight = '20px';
+                    parentList.style.paddingLeft = '0';
+                    parentList.dataset.rtlProcessed = 'true';
+                  }
+                }
+                
+                // Handle nested ul/ol within lists
+                if (element.tagName === 'UL' || element.tagName === 'OL') {
+                  element.style.paddingRight = '20px';
+                  element.style.paddingLeft = '0';
+                }
+              }
+              
+              element.dataset.rtlProcessed = 'true';
+            }
+          });
+        } else {
+          // For non-ProseMirror elements, use the broader approach
+          const textElements = block.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, div:not(.ProseMirror), span');
+          
+          textElements.forEach(element => {
+            if (element.dataset.rtlProcessed) return;
+            
+            const text = element.textContent.trim();
+            if (text.length > 0) {
+              const firstLetter = findFirstLetter(text);
+              
+              if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+                element.style.direction = 'rtl';
+                element.style.textAlign = 'right';
+                
+                if (element.tagName === 'LI') {
+                  element.style.paddingRight = '20px';
+                  element.style.paddingLeft = '0';
+                }
+                
+                if (element.tagName === 'UL' || element.tagName === 'OL') {
+                  element.style.paddingRight = '20px';
+                  element.style.paddingLeft = '0';
+                }
+              }
+              
+              element.dataset.rtlProcessed = 'true';
+            }
+          });
+        }
+        
+        block.dataset.rtlChecked = 'true';
+      });
+    }
   });
+  
+  if (!foundElements) {
+    console.log('RTL Helper: No Gemini Canvas elements found yet. Will retry on next mutation.');
+  }
 }
 
 /**
@@ -592,13 +650,41 @@ function startObserver() {
     observer.disconnect();
   }
   
-  observer = new MutationObserver(() => {
-    alignHebrewBlocks();
+  const websiteType = getWebsiteType();
+  
+  observer = new MutationObserver((mutations) => {
+    // For Gemini, add a small delay to ensure content is rendered
+    if (websiteType === 'gemini') {
+      // Check if any mutation added nodes with relevant classes
+      const hasRelevantChanges = mutations.some(mutation => {
+        return Array.from(mutation.addedNodes).some(node => {
+          if (node.nodeType === 1) { // Element node
+            const element = node;
+            return element.classList?.contains('ProseMirror') ||
+                   element.classList?.contains('immersive-editor') ||
+                   element.querySelector?.('.ProseMirror') ||
+                   element.querySelector?.('.immersive-editor');
+          }
+          return false;
+        });
+      });
+      
+      if (hasRelevantChanges) {
+        console.log('RTL Helper: Detected relevant changes in Gemini, applying RTL...');
+        setTimeout(() => {
+          alignHebrewBlocks();
+        }, 100);
+      }
+      alignHebrewBlocks();
+    } else {
+      alignHebrewBlocks();
+    }
   });
 
   observer.observe(document.body, {
     childList: true,
-    subtree: true
+    subtree: true,
+    characterData: websiteType === 'gemini' // Also watch for text changes in Gemini
   });
 }
 
@@ -628,10 +714,39 @@ function initializeExtension() {
     if (extensionEnabled) {
       startObserver();
       alignHebrewBlocks();
+      
+      // For Gemini, add periodic checking as fallback
+      const websiteType = getWebsiteType();
+      if (websiteType === 'gemini') {
+        // Initial check after a delay
+        setTimeout(() => {
+          console.log('RTL Helper: Running initial Gemini check...');
+          alignHebrewBlocks();
+        }, 1000);
+        
+        // Another check after 2 seconds
+        setTimeout(() => {
+          console.log('RTL Helper: Running secondary Gemini check...');
+          alignHebrewBlocks();
+        }, 2000);
+        
+        // Set up periodic checking every 3 seconds for the first 15 seconds
+        let checkCount = 0;
+        const geminiInterval = setInterval(() => {
+          checkCount++;
+          if (checkCount > 5) {
+            clearInterval(geminiInterval);
+            console.log('RTL Helper: Stopped periodic Gemini checks');
+          } else {
+            console.log(`RTL Helper: Periodic Gemini check ${checkCount}/5`);
+            alignHebrewBlocks();
+          }
+        }, 3000);
+      }
     }
     
     const websiteType = getWebsiteType();
-    console.log(`RTL Helper v2.1.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Menu: ${menuHidden ? 'HIDDEN' : 'VISIBLE'}`);
+    console.log(`RTL Helper v2.1.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Menu: ${menuHidden ? 'HIDDEN' : 'VISIBLE'}`);
   });
 }
 
