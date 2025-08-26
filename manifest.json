@@ -1,10 +1,23 @@
 {
   "manifest_version": 3,
   "name": "RTL Helper for Notion, Claude & Gemini",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Automatically sets text direction to RTL for Hebrew content in Notion, Claude and Gemini Canvas.",
   "author": "Your Name",
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "content_scripts": [
     {
       "matches": ["https://www.notion.so/*", "https://claude.ai/*", "https://gemini.google.com/*"],

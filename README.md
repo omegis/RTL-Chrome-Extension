@@ -11,11 +11,10 @@ A Chrome browser extension that automatically applies RTL (Right-to-Left) text d
 - **Smart Detection**: Automatically detects Hebrew text while ignoring emojis and symbols
 
 ### 🎛️ Advanced User Interface
-- **Elegant Dropdown**: Non-intrusive circular button (🔤) in top-right corner
+- **Browser Extension Button**: Control via Chrome's extension toolbar
 - **One-Click Toggle**: Enable/disable RTL functionality instantly
-- **Complete Hide Option**: Hide the entire interface with X button
-- **Keyboard Restore**: Press `Ctrl+Shift+R` to bring back hidden menu
-- **Visual Feedback**: Color-coded status indicators and smooth animations
+- **Clean Popup**: Simple, intuitive popup interface
+- **Visual Feedback**: Color-coded status indicators
 
 ### 💾 Persistent Settings
 - **Session Memory**: Remembers your enable/disable preference
@@ -72,25 +71,15 @@ The extension will be available on the Chrome Web Store for easy one-click insta
 
 ### Basic Usage
 1. **Automatic Operation**: The extension works automatically on Hebrew text
-2. **Access Controls**: Click the 🔤 button in the top-right corner
-3. **Toggle Functionality**: Use the dropdown to enable/disable RTL support
+2. **Access Controls**: Click the extension icon in Chrome's toolbar
+3. **Toggle Functionality**: Use the popup to enable/disable RTL support
 
 ### Advanced Controls
 
 #### Enable/Disable Toggle
-- Click the 🔤 button to open the dropdown
+- Click the extension icon in Chrome's toolbar
 - Click "Enabled" or "Disabled" to toggle functionality
 - Green dot = Enabled, Gray dot = Disabled
-
-#### Hide Interface Completely
-- Open the dropdown menu
-- Click the **×** button in the header
-- The entire interface disappears (extension still works)
-
-#### Restore Hidden Interface
-- Press `Ctrl+Shift+R` on any supported website
-- The dropdown interface reappears
-- All your previous settings are preserved
 
 ### Supported Websites
 
@@ -118,6 +107,11 @@ The extension will be available on the Chrome Web Store for easy one-click insta
 RTL-Chrome-Extension/
 ├── manifest.json          # Extension configuration
 ├── content.js            # Main functionality script
+├── popup.html           # Extension popup interface
+├── popup.js             # Popup functionality
+├── icon16.png           # Extension icon (16x16)
+├── icon48.png           # Extension icon (48x48)
+├── icon128.png          # Extension icon (128x128)
 ├── CLAUDE.md            # Developer documentation
 ├── claudechat.html      # Reference HTML sample
 └── README.md           # This file
@@ -165,7 +159,21 @@ We welcome contributions! Here's how you can help:
 
 ## 📝 Changelog
 
-### Version 2.1.0 (Current)
+### Version 2.2.0 (Current)
+- ✅ Moved controls from floating button to browser extension button
+- ✅ Added support for Claude research documents and artifacts
+- ✅ Improved user interface accessibility
+- ✅ Enhanced popup controls
+
+### Version 2.1.2
+- ✅ Added support for Claude research documents
+- ✅ Fixed detection for Claude's markdown artifacts
+
+### Version 2.1.1
+- ✅ Fixed Gemini Canvas detection for improved RTL application
+- ✅ Enhanced element targeting for better compatibility
+
+### Version 2.1.0
 - ✅ Added Gemini Canvas support
 - ✅ Enhanced text element detection for immersive editors
 - ✅ Improved list formatting for all supported websites
@@ -195,9 +203,9 @@ We welcome contributions! Here's how you can help:
 - Check that the extension is enabled in Chrome
 - Try refreshing the page
 
-**Dropdown menu not appearing?**
-- Look for the 🔤 button in the top-right corner
-- If hidden, press `Ctrl+Shift+R` to restore
+**Extension controls not appearing?**
+- Look for the extension icon in Chrome's toolbar
+- If not visible, click the puzzle icon and pin the extension
 - Check Chrome's extension permissions
 
 **RTL not applying to Hebrew text?**

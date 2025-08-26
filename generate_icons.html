@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Icons</title>
+    <style>
+        canvas { 
+            border: 1px solid #ccc; 
+            margin: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>RTL Helper Icons</h1>
+    <p>Right-click each canvas and save as PNG with the corresponding filename:</p>
+    
+    <h3>icon16.png (16x16)</h3>
+    <canvas id="icon16" width="16" height="16"></canvas>
+    
+    <h3>icon48.png (48x48)</h3>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    
+    <h3>icon128.png (128x128)</h3>
+    <canvas id="icon128" width="128" height="128"></canvas>
+
+    <script>
+        function drawIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#6366f1';
+            const radius = size * 0.15;
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(size - radius, 0);
+            ctx.arcTo(size, 0, size, radius, radius);
+            ctx.lineTo(size, size - radius);
+            ctx.arcTo(size, size, size - radius, size, radius);
+            ctx.lineTo(radius, size);
+            ctx.arcTo(0, size, 0, size - radius, radius);
+            ctx.lineTo(0, radius);
+            ctx.arcTo(0, 0, radius, 0, radius);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.35}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // For smaller sizes, just use "R"
+            if (size <= 16) {
+                ctx.font = `bold ${size * 0.6}px Arial`;
+                ctx.fillText('R', size / 2, size / 2);
+            } else {
+                ctx.fillText('RTL', size / 2, size / 2);
+            }
+        }
+        
+        drawIcon('icon16', 16);
+        drawIcon('icon48', 48);
+        drawIcon('icon128', 128);
+        
+        // Auto-download function
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        // Add download buttons
+        setTimeout(() => {
+            const button = document.createElement('button');
+            button.textContent = 'Download All Icons';
+            button.onclick = () => {
+                downloadCanvas('icon16', 'icon16.png');
+                setTimeout(() => downloadCanvas('icon48', 'icon48.png'), 500);
+                setTimeout(() => downloadCanvas('icon128', 'icon128.png'), 1000);
+            };
+            document.body.appendChild(button);
+        }, 100);
+    </script>
+</body>
+</html>
