@@ -1,8 +1,8 @@
 /**
- * RTL Helper for Notion, Claude, Gemini & Bunny.net
- * Version 2.3.1: Memory optimizations - added event listener cleanup and throttling.
+ * Rotem Daily RTL - RTL Helper for Multiple Websites
+ * Version 2.4.0: Added ManyChat support for textarea elements.
  * Last update: 2025-09-30
- * This script runs on Notion, Claude, Gemini, and Bunny.net pages and aligns text blocks to RTL
+ * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
  */
 
@@ -10,6 +10,7 @@
 let extensionEnabled = true;
 let observer = null;
 let bunnyEventListeners = new Map(); // Store event listeners for cleanup
+let manychatEventListeners = new Map(); // Store event listeners for cleanup
 
 /**
  * Throttle function to limit execution frequency
@@ -40,7 +41,7 @@ function findFirstLetter(str) {
 
 /**
  * Determines the current website type
- * @returns {string} 'notion', 'claude', 'gemini', or 'bunny'
+ * @returns {string} 'notion', 'claude', 'gemini', 'bunny', or 'manychat'
  */
 function getWebsiteType() {
   const hostname = window.location.hostname;
@@ -48,6 +49,7 @@ function getWebsiteType() {
   if (hostname === 'claude.ai') return 'claude';
   if (hostname === 'gemini.google.com') return 'gemini';
   if (hostname === 'dash.bunny.net') return 'bunny';
+  if (hostname === 'app.manychat.com') return 'manychat';
   return 'unknown';
 }
 
@@ -327,6 +329,62 @@ function alignBunnyBlocks() {
 }
 
 /**
+ * Applies RTL styling to ManyChat textarea elements
+ */
+function alignManychatBlocks() {
+  // Target ManyChat textarea elements
+  const manychatSelectors = [
+    'textarea._input_okm14_1',
+    'textarea._texInput_t2ybz_1'
+  ];
+
+  const textareas = document.querySelectorAll(manychatSelectors.join(', '));
+
+  textareas.forEach(element => {
+    if (element.dataset.rtlChecked) {
+      return;
+    }
+
+    // Check current value
+    const text = element.value.trim();
+
+    // Add event listeners for dynamic content
+    if (!element.dataset.rtlListenerAdded) {
+      // Create listener function and store reference
+      const inputListener = () => {
+        const currentText = element.value.trim();
+        if (currentText.length > 0) {
+          const firstLetter = findFirstLetter(currentText);
+          if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+            element.style.direction = 'rtl';
+            element.style.textAlign = 'right';
+          } else {
+            element.style.direction = 'ltr';
+            element.style.textAlign = 'left';
+          }
+        }
+      };
+
+      // Add listener and store reference for cleanup
+      element.addEventListener('input', inputListener);
+      manychatEventListeners.set(element, inputListener);
+      element.dataset.rtlListenerAdded = 'true';
+    }
+
+    // Check current content
+    if (text.length > 0) {
+      const firstLetter = findFirstLetter(text);
+      if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+        element.style.direction = 'rtl';
+        element.style.textAlign = 'right';
+      }
+    }
+
+    element.dataset.rtlChecked = 'true';
+  });
+}
+
+/**
  * Main function to align Hebrew blocks based on website type
  */
 function alignHebrewBlocks() {
@@ -342,6 +400,8 @@ function alignHebrewBlocks() {
     alignGeminiBlocks();
   } else if (websiteType === 'bunny') {
     alignBunnyBlocks();
+  } else if (websiteType === 'manychat') {
+    alignManychatBlocks();
   }
 }
 
@@ -465,6 +525,28 @@ function resetRTLStyling() {
       delete element.dataset.rtlChecked;
       delete element.dataset.rtlListenerAdded;
     });
+  } else if (websiteType === 'manychat') {
+    // Reset ManyChat textarea styling and remove event listeners
+    const manychatSelectors = [
+      'textarea._input_okm14_1[data-rtl-checked]',
+      'textarea._texInput_t2ybz_1[data-rtl-checked]'
+    ];
+
+    const textareas = document.querySelectorAll(manychatSelectors.join(', '));
+    textareas.forEach(element => {
+      // Remove event listener if it exists
+      if (manychatEventListeners.has(element)) {
+        const listener = manychatEventListeners.get(element);
+        element.removeEventListener('input', listener);
+        manychatEventListeners.delete(element);
+      }
+
+      // Reset styling
+      element.style.direction = '';
+      element.style.textAlign = '';
+      delete element.dataset.rtlChecked;
+      delete element.dataset.rtlListenerAdded;
+    });
   }
 }
 
@@ -571,7 +653,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`RTL Helper v2.3.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 

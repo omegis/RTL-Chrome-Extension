@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Rotem Daily RTL is a Chrome browser extension that automatically sets text direction to RTL (right-to-left) for Hebrew content on Notion, Claude AI, Gemini Canvas, and Bunny.net websites. The extension detects Hebrew text blocks and applies appropriate RTL styling including text alignment and list item reordering, with a user-friendly browser extension button for control.
+Rotem Daily RTL is a Chrome browser extension that automatically sets text direction to RTL (right-to-left) for Hebrew content on Notion, Claude AI, Gemini Canvas, Bunny.net, and ManyChat websites. The extension detects Hebrew text blocks and applies appropriate RTL styling including text alignment and list item reordering, with a user-friendly browser extension button for control.
 
 ## Architecture
 
 This is a Chrome extension (Manifest v3) with multi-website support and advanced UI controls:
 
 ### Core Files
-- **manifest.json**: Chrome extension manifest (v3) with permissions for Notion, Claude, Gemini, and Bunny.net websites, plus storage API
-- **content.js**: Main content script that runs on `https://www.notion.so/*`, `https://claude.ai/*`, `https://gemini.google.com/*`, and `https://dash.bunny.net/*`
+- **manifest.json**: Chrome extension manifest (v3) with permissions for Notion, Claude, Gemini, Bunny.net, and ManyChat websites, plus storage API
+- **content.js**: Main content script that runs on `https://www.notion.so/*`, `https://claude.ai/*`, `https://gemini.google.com/*`, `https://dash.bunny.net/*`, and `https://app.manychat.com/*`
 - **popup.html**: Browser extension popup interface for controlling the extension
 - **claudechat.html**: Sample HTML file for understanding Claude's website structure (reference only)
 
@@ -21,13 +21,14 @@ This is a Chrome extension (Manifest v3) with multi-website support and advanced
 #### Hebrew Detection & Processing
 - **Hebrew Detection**: Uses Unicode regex `/[\u0590-\u05FF]/` to detect Hebrew characters
 - **Smart Text Processing**: `findFirstLetter()` function finds the first actual letter in text, ignoring emojis and symbols using `/\p{L}/u` regex
-- **Multi-Website Support**: `getWebsiteType()` function detects current website (Notion, Claude, Gemini, or Bunny.net)
+- **Multi-Website Support**: `getWebsiteType()` function detects current website (Notion, Claude, Gemini, Bunny.net, or ManyChat)
 
 #### RTL Styling Engine
 - **Notion Support**: Targets `div[data-block-id]` elements with special list handling
 - **Claude Support**: Targets message content areas with multiple selectors for user and assistant messages, including research documents
 - **Gemini Support**: Targets ProseMirror editor and Canvas content areas with smart element detection
 - **Bunny.net Support**: Targets form inputs (`input.bn-input__input.bn-form__control__input`) and textareas (`textarea.bn-form__control__input`) with dynamic content detection via input event listeners
+- **ManyChat Support**: Targets textareas (`textarea._input_okm14_1` and `textarea._texInput_t2ybz_1`) with dynamic RTL detection for chat messages and message builders
 - **Dynamic Content**: Uses `MutationObserver` to detect dynamically added content
 - **Smart Reset**: Website-specific RTL styling reset when disabled
 
@@ -47,6 +48,7 @@ function getWebsiteType() {
   if (hostname === 'claude.ai') return 'claude';
   if (hostname === 'gemini.google.com') return 'gemini';
   if (hostname === 'dash.bunny.net') return 'bunny';
+  if (hostname === 'app.manychat.com') return 'manychat';
   return 'unknown';
 }
 
@@ -55,6 +57,7 @@ function alignNotionBlocks() { /* Notion-specific logic */ }
 function alignClaudeBlocks() { /* Claude-specific logic */ }
 function alignGeminiBlocks() { /* Gemini-specific logic */ }
 function alignBunnyBlocks() { /* Bunny.net-specific logic */ }
+function alignManychatBlocks() { /* ManyChat-specific logic */ }
 ```
 
 #### State Management
@@ -62,7 +65,9 @@ function alignBunnyBlocks() { /* Bunny.net-specific logic */ }
 - `rtlHelperEnabled`: Stored in Chrome storage (persistent across sessions)
 - `dataset.rtlChecked`: Per-element flag to avoid reprocessing
 - `dataset.rtlProcessed`: Additional flag for Gemini element tracking
-- `dataset.rtlListenerAdded`: Flag for Bunny.net input event listeners
+- `dataset.rtlListenerAdded`: Flag for Bunny.net and ManyChat input event listeners
+- `bunnyEventListeners`: Map storing event listeners for Bunny.net cleanup
+- `manychatEventListeners`: Map storing event listeners for ManyChat cleanup
 
 #### UI Components
 - **Browser Extension Popup**: Clean interface with toggle controls
@@ -79,8 +84,9 @@ This is a pure JavaScript Chrome extension with no build process:
 3. **Test Claude**: Visit `claude.ai` and type Hebrew messages - should apply RTL to Hebrew text
 4. **Test Gemini**: Visit Gemini Canvas with Hebrew content - should apply RTL styling
 5. **Test Bunny.net**: Visit `dash.bunny.net` and type Hebrew in form inputs/textareas - should apply RTL dynamically
-6. **Test Controls**: Use browser extension button to enable/disable functionality
-7. **Test Persistence**: Reload pages to verify settings are remembered
+6. **Test ManyChat**: Visit `app.manychat.com` and type Hebrew in chat/message textareas - should apply RTL dynamically
+7. **Test Controls**: Use browser extension button to enable/disable functionality
+8. **Test Persistence**: Reload pages to verify settings are remembered
 
 ### Deployment
 - Package the directory as a .zip file for Chrome Web Store submission
@@ -90,14 +96,16 @@ This is a pure JavaScript Chrome extension with no build process:
 ## Key Implementation Details
 
 ### Multi-Website Support
-- Extension runs on Notion (`https://www.notion.so/*`), Claude (`https://claude.ai/*`), Gemini (`https://gemini.google.com/*`), and Bunny.net (`https://dash.bunny.net/*`)
+- Extension runs on Notion (`https://www.notion.so/*`), Claude (`https://claude.ai/*`), Gemini (`https://gemini.google.com/*`), Bunny.net (`https://dash.bunny.net/*`), and ManyChat (`https://app.manychat.com/*`)
 - Different DOM selectors and styling approaches for each website
 - Unified Hebrew detection logic across all platforms
-- Special handling for form inputs on Bunny.net with dynamic content detection
+- Special handling for form inputs on Bunny.net and textareas on ManyChat with dynamic content detection
 
 ### Advanced Features
-- **Dynamic Content Detection**: Real-time RTL detection as users type in Bunny.net forms
+- **Dynamic Content Detection**: Real-time RTL detection as users type in Bunny.net forms and ManyChat textareas
 - **Event Listeners**: Smart input event handlers that toggle RTL based on content language
+- **Memory Optimization**: Proper event listener cleanup using Map storage to prevent memory leaks
+- **Throttling**: MutationObserver callbacks throttled to 200ms to reduce CPU usage
 - **Periodic Checking**: Fallback mechanism for Gemini Canvas to ensure content is processed
 - **Visual Feedback**: Clear status indicators in browser extension popup
 
@@ -125,8 +133,8 @@ This is a pure JavaScript Chrome extension with no build process:
 2. **Use**: RTL functionality works automatically on Hebrew text across supported websites
 3. **Control**: Click browser extension button to access controls
 4. **Toggle**: Use popup interface to enable/disable functionality
-5. **Supported Sites**: Works on Notion, Claude AI, Gemini Canvas, and Bunny.net
-6. **Dynamic Detection**: On Bunny.net, RTL is applied/removed dynamically as you type
+5. **Supported Sites**: Works on Notion, Claude AI, Gemini Canvas, Bunny.net, and ManyChat
+6. **Dynamic Detection**: On Bunny.net and ManyChat, RTL is applied/removed dynamically as you type
 
 ### For Developers
 - Extension follows modern Chrome extension best practices
