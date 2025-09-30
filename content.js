@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.1: Fixed ManyChat to target visible div._content_okm14_17 (dual-display system).
+ * Version 2.4.2: Added periodic checking for ManyChat to handle delayed content population.
  * Last update: 2025-09-30
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -341,18 +341,16 @@ function alignManychatBlocks() {
   const textareas = document.querySelectorAll(manychatSelectors.join(', '));
 
   textareas.forEach(element => {
-    if (element.dataset.rtlChecked) {
-      return;
-    }
-
     // Find the visible content div (ManyChat's dual-display system)
     const parent = element.parentElement;
     const visibleDiv = parent ? parent.querySelector('div._content_okm14_17') : null;
 
-    // Check current value
-    const text = element.value.trim();
+    // Check content from both textarea and visible div (visible div might be populated with delay)
+    const textareaValue = element.value.trim();
+    const visibleText = visibleDiv ? visibleDiv.textContent.trim() : '';
+    const text = visibleText.length > 0 ? visibleText : textareaValue;
 
-    // Add event listeners for dynamic content
+    // Add event listeners for dynamic content (only once per element)
     if (!element.dataset.rtlListenerAdded) {
       // Create listener function and store reference
       const inputListener = () => {
@@ -398,6 +396,7 @@ function alignManychatBlocks() {
       }
     }
 
+    // Mark as checked (remove on next run to allow re-checking)
     element.dataset.rtlChecked = 'true';
     if (visibleDiv) {
       visibleDiv.dataset.rtlChecked = 'true';
@@ -651,7 +650,7 @@ function initializeExtension() {
     if (extensionEnabled) {
       startObserver();
       alignHebrewBlocks();
-      
+
       // For Gemini, add periodic checking as fallback
       const websiteType = getWebsiteType();
       if (websiteType === 'gemini') {
@@ -660,13 +659,13 @@ function initializeExtension() {
           console.log('RTL Helper: Running initial Gemini check...');
           alignHebrewBlocks();
         }, 1000);
-        
+
         // Another check after 2 seconds
         setTimeout(() => {
           console.log('RTL Helper: Running secondary Gemini check...');
           alignHebrewBlocks();
         }, 2000);
-        
+
         // Set up periodic checking every 3 seconds for the first 15 seconds
         let checkCount = 0;
         const geminiInterval = setInterval(() => {
@@ -680,10 +679,49 @@ function initializeExtension() {
           }
         }, 3000);
       }
+
+      // For ManyChat, add periodic checking to catch delayed content population
+      if (websiteType === 'manychat') {
+        // Initial check after a delay
+        setTimeout(() => {
+          console.log('RTL Helper: Running initial ManyChat check...');
+          // Clear rtlChecked flags to allow re-checking
+          document.querySelectorAll('[data-rtl-checked]').forEach(el => {
+            delete el.dataset.rtlChecked;
+          });
+          alignHebrewBlocks();
+        }, 500);
+
+        // Another check after 1 second
+        setTimeout(() => {
+          console.log('RTL Helper: Running secondary ManyChat check...');
+          document.querySelectorAll('[data-rtl-checked]').forEach(el => {
+            delete el.dataset.rtlChecked;
+          });
+          alignHebrewBlocks();
+        }, 1000);
+
+        // Set up periodic checking every 2 seconds for the first 10 seconds
+        let manychatCheckCount = 0;
+        const manychatInterval = setInterval(() => {
+          manychatCheckCount++;
+          if (manychatCheckCount > 5) {
+            clearInterval(manychatInterval);
+            console.log('RTL Helper: Stopped periodic ManyChat checks');
+          } else {
+            console.log(`RTL Helper: Periodic ManyChat check ${manychatCheckCount}/5`);
+            // Clear flags to allow re-checking
+            document.querySelectorAll('[data-rtl-checked]').forEach(el => {
+              delete el.dataset.rtlChecked;
+            });
+            alignHebrewBlocks();
+          }
+        }, 2000);
+      }
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.2 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
