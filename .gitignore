@@ -1,0 +1,28 @@
+# Build artifacts
+*.zip
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+
+# Development files
+CLAUDE.md
+.claude/
+
+# Node modules (if ever added)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*

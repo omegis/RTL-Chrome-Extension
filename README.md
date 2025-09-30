@@ -1,13 +1,15 @@
-# RTL Helper for Notion, Claude & Gemini
+# Rotem Daily RTL - Hebrew RTL Helper
 
-A Chrome browser extension that automatically applies RTL (Right-to-Left) text direction for Hebrew content on Notion, Claude AI, and Gemini Canvas websites. Features an elegant dropdown interface with complete user control over functionality.
+A Chrome browser extension that automatically applies RTL (Right-to-Left) text direction for Hebrew content across multiple productivity platforms: Notion, Claude AI, Gemini Canvas, Bunny.net, and ManyChat. Features a simple popup interface with complete user control over functionality.
 
 ## ✨ Features
 
 ### 🌐 Multi-Website Support
 - **Notion**: Full support for all Notion pages with Hebrew content
-- **Claude AI**: Seamless RTL support for conversations with Hebrew text
+- **Claude AI**: Seamless RTL support for conversations and streaming responses with Hebrew text
 - **Gemini Canvas**: Full RTL support for Gemini's immersive editor and canvas interface
+- **Bunny.net**: RTL support for forms and textareas in dash.bunny.net
+- **ManyChat**: RTL support for message builders and chat editors with dual-display handling
 - **Smart Detection**: Automatically detects Hebrew text while ignoring emojis and symbols
 
 ### 🎛️ Advanced User Interface
@@ -26,6 +28,8 @@ A Chrome browser extension that automatically applies RTL (Right-to-Left) text d
 - **Mixed Content**: Handles text with emojis, symbols, and Hebrew together
 - **List Support**: Special handling for bulleted and numbered lists in Notion
 - **Dynamic Content**: Automatically processes new content as it loads
+- **Streaming Support**: Handles real-time streaming responses in Claude AI
+- **Dual-Display**: Special handling for ManyChat's visible and hidden text areas
 
 ## 📸 Screenshots
 
@@ -38,8 +42,8 @@ Hebrew conversations in Claude AI are automatically formatted with proper RTL al
 ### Gemini Canvas Support
 Gemini's immersive editor and canvas documents with Hebrew content are properly formatted with RTL alignment, including headers, paragraphs, and lists.
 
-### Dropdown Interface
-Clean, modern dropdown menu provides easy access to all controls without cluttering the interface.
+### Bunny.net & ManyChat Support
+Form inputs, textareas, and message builders in Bunny.net and ManyChat are automatically formatted with proper RTL alignment for Hebrew content.
 
 ## 🚀 Installation
 
@@ -61,8 +65,8 @@ Clean, modern dropdown menu provides easy access to all controls without clutter
    - The extension should now appear in your extensions list
 
 4. **Verify Installation**
-   - Visit any Notion page, Claude AI, or Gemini Canvas
-   - Look for the 🔤 button in the top-right corner
+   - Visit any supported website (Notion, Claude AI, Gemini Canvas, Bunny.net, or ManyChat)
+   - Click the extension icon in Chrome's toolbar to access controls
 
 ### Option 2: Chrome Web Store (Coming Soon)
 The extension will be available on the Chrome Web Store for easy one-click installation.
@@ -86,16 +90,20 @@ The extension will be available on the Chrome Web Store for easy one-click insta
 | Website | URL Pattern | Features |
 |---------|-------------|----------|
 | **Notion** | `https://www.notion.so/*` | Block-level RTL, List formatting, Dynamic content |
-| **Claude AI** | `https://claude.ai/*` | Message RTL, Conversation formatting, Real-time updates |
+| **Claude AI** | `https://claude.ai/*` | Message RTL, Streaming responses, Real-time updates |
 | **Gemini Canvas** | `https://gemini.google.com/*` | Canvas RTL, Headers, Lists, Immersive editor support |
+| **Bunny.net** | `https://dash.bunny.net/*` | Form inputs, Textareas, Memory-optimized event handling |
+| **ManyChat** | `https://app.manychat.com/*` | Message builders, Chat editors, Dual-display text handling |
 
 ## 🛠️ Technical Details
 
 ### Architecture
 - **Manifest Version**: 3 (latest Chrome extension standard)
-- **Permissions**: `storage` (for preferences), website access
-- **Content Scripts**: Runs on Notion, Claude, and Gemini domains
+- **Permissions**: `storage` (for preferences), `tabs` (for website detection)
+- **Content Scripts**: Runs on Notion, Claude, Gemini, Bunny.net, and ManyChat domains
 - **No Background Scripts**: Lightweight, efficient operation
+- **Memory Optimized**: Event listener management with proper cleanup
+- **CPU Efficient**: Throttled mutation observers and minimal periodic checks
 
 ### Browser Compatibility
 - **Chrome**: Fully supported (version 88+)
@@ -112,9 +120,10 @@ RTL-Chrome-Extension/
 ├── icon16.png           # Extension icon (16x16)
 ├── icon48.png           # Extension icon (48x48)
 ├── icon128.png          # Extension icon (128x128)
-├── CLAUDE.md            # Developer documentation
-├── claudechat.html      # Reference HTML sample
-└── README.md           # This file
+├── logo.png             # Original logo file
+├── privacy-policy.html  # Privacy policy for Chrome Web Store
+├── .gitignore           # Git ignore rules
+└── README.md            # This file
 ```
 
 ## 🔧 Development
@@ -127,11 +136,11 @@ RTL-Chrome-Extension/
 ### Making Changes
 1. **Edit Files**: Modify `content.js` or `manifest.json` as needed
 2. **Reload Extension**: Go to `chrome://extensions/` and click reload
-3. **Test Changes**: Visit Notion or Claude to verify functionality
+3. **Test Changes**: Visit any supported website to verify functionality
 
 ### Debugging
 - **Console Logs**: Check browser console for extension messages
-- **Extension Logs**: Look for "RTL Helper v2.1.0 is loaded..." messages
+- **Extension Logs**: Look for "RTL Helper v2.4.4 is loaded..." messages
 - **Storage Inspector**: Use Chrome DevTools to inspect extension storage
 
 ## 🤝 Contributing
@@ -148,18 +157,54 @@ We welcome contributions! Here's how you can help:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly on both Notion and Claude
+4. Test thoroughly on all supported websites
 5. Submit a pull request with clear description
 
 ### Development Guidelines
 - Follow existing code style and patterns
-- Test on both supported websites
+- Test on all supported websites
 - Update documentation for new features
 - Ensure backward compatibility
+- Maintain memory efficiency and CPU optimization
 
 ## 📝 Changelog
 
-### Version 2.2.0 (Current)
+### Version 2.4.4 (Current)
+- ✅ Fixed Claude AI streaming responses RTL handling
+- ✅ Added `.standard-markdown` selector for improved Claude support
+- ✅ Optimized re-checking mechanism for streaming content
+- ✅ Published privacy policy for Chrome Web Store compliance
+
+### Version 2.4.3
+- ✅ Optimized ManyChat efficiency with single 1-second delayed check
+- ✅ Removed excessive periodic intervals for CPU optimization
+- ✅ Improved memory efficiency across all websites
+
+### Version 2.4.2
+- ✅ Added delayed content checking for ManyChat (handles JS-populated text)
+- ✅ Implemented periodic re-checking for dual-display systems
+
+### Version 2.4.1
+- ✅ Fixed ManyChat visible div RTL styling
+- ✅ Added dual-display handling (visible div + hidden textarea)
+- ✅ Enhanced input listener to style both elements simultaneously
+
+### Version 2.4.0
+- ✅ Added ManyChat support (app.manychat.com)
+- ✅ Implemented memory-optimized event listener management
+- ✅ Added support for message builders and chat editors
+
+### Version 2.3.1
+- ✅ Optimized Bunny.net event listener cleanup
+- ✅ Added throttling for MutationObserver (200ms)
+- ✅ Improved memory management with Map storage
+
+### Version 2.3.0
+- ✅ Added Bunny.net support (dash.bunny.net)
+- ✅ Implemented form input and textarea RTL handling
+- ✅ Added website-specific event listener management
+
+### Version 2.2.0
 - ✅ Moved controls from floating button to browser extension button
 - ✅ Added support for Claude research documents and artifacts
 - ✅ Improved user interface accessibility
@@ -179,27 +224,12 @@ We welcome contributions! Here's how you can help:
 - ✅ Improved list formatting for all supported websites
 - ✅ Updated documentation for multi-website support
 
-### Version 2.0.0 (Previous)
-- ✅ Added Claude AI website support
-- ✅ Redesigned UI with elegant dropdown menu
-- ✅ Added complete interface hiding functionality
-- ✅ Implemented keyboard shortcut for menu restoration
-- ✅ Enhanced state persistence across sessions
-- ✅ Improved Hebrew text detection algorithm
-- ✅ Added website-specific RTL styling logic
-
-### Version 1.2.0 (Previous)
-- ✅ Initial Notion support
-- ✅ Basic Hebrew detection with emoji handling
-- ✅ Simple button interface
-- ✅ List formatting support
-
 ## 🆘 Support & Troubleshooting
 
 ### Common Issues
 
 **Extension not working on specific pages?**
-- Ensure you're on a supported website (Notion, Claude, or Gemini)
+- Ensure you're on a supported website (Notion, Claude, Gemini, Bunny.net, or ManyChat)
 - Check that the extension is enabled in Chrome
 - Try refreshing the page
 
@@ -218,8 +248,8 @@ We welcome contributions! Here's how you can help:
 - Try clearing and reconfiguring the extension
 
 ### Getting Help
-- **GitHub Issues**: Report bugs and request features
-- **Documentation**: Check `CLAUDE.md` for technical details
+- **GitHub Issues**: [Report bugs and request features](https://github.com/omegis/RTL-Chrome-Extension/issues)
+- **Privacy Policy**: See [privacy-policy.html](privacy-policy.html) for data handling details
 - **Community**: Share experiences and solutions
 
 ## 📄 License
