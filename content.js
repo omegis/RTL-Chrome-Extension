@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.2: Added periodic checking for ManyChat to handle delayed content population.
+ * Version 2.4.3: Efficiency improvement - stop ManyChat periodic checks after first user edit.
  * Last update: 2025-09-30
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -680,48 +680,22 @@ function initializeExtension() {
         }, 3000);
       }
 
-      // For ManyChat, add periodic checking to catch delayed content population
+      // For ManyChat, add single delayed check to catch delayed content population
       if (websiteType === 'manychat') {
-        // Initial check after a delay
+        // Single check after 1 second (efficiency - no continuous polling)
         setTimeout(() => {
-          console.log('RTL Helper: Running initial ManyChat check...');
+          console.log('RTL Helper: Running delayed ManyChat check...');
           // Clear rtlChecked flags to allow re-checking
           document.querySelectorAll('[data-rtl-checked]').forEach(el => {
             delete el.dataset.rtlChecked;
           });
           alignHebrewBlocks();
-        }, 500);
-
-        // Another check after 1 second
-        setTimeout(() => {
-          console.log('RTL Helper: Running secondary ManyChat check...');
-          document.querySelectorAll('[data-rtl-checked]').forEach(el => {
-            delete el.dataset.rtlChecked;
-          });
-          alignHebrewBlocks();
         }, 1000);
-
-        // Set up periodic checking every 2 seconds for the first 10 seconds
-        let manychatCheckCount = 0;
-        const manychatInterval = setInterval(() => {
-          manychatCheckCount++;
-          if (manychatCheckCount > 5) {
-            clearInterval(manychatInterval);
-            console.log('RTL Helper: Stopped periodic ManyChat checks');
-          } else {
-            console.log(`RTL Helper: Periodic ManyChat check ${manychatCheckCount}/5`);
-            // Clear flags to allow re-checking
-            document.querySelectorAll('[data-rtl-checked]').forEach(el => {
-              delete el.dataset.rtlChecked;
-            });
-            alignHebrewBlocks();
-          }
-        }, 2000);
       }
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.2 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.3 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 

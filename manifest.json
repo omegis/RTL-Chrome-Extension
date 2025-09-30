@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rotem Daily RTL",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "Automatically sets text direction to RTL for Hebrew content in Notion, Claude, Gemini Canvas, Bunny.net and ManyChat.",
   "author": "Your Name",
   "permissions": ["storage", "tabs"],
