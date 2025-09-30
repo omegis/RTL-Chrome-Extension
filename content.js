@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.3: Efficiency improvement - stop ManyChat periodic checks after first user edit.
+ * Version 2.4.4: Improved Claude chat support for streaming responses and .standard-markdown.
  * Last update: 2025-09-30
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -110,15 +110,17 @@ function alignClaudeBlocks() {
     '.font-claude-message',
     'div[class*="whitespace-pre-wrap"]',
     '#markdown-artifact',  // Research documents
-    '.font-claude-response'  // Claude response content
+    '.font-claude-response',  // Claude response content
+    '.standard-markdown'  // New Claude markdown structure
   ];
 
   const messageBlocks = document.querySelectorAll(messageSelectors.join(', '));
 
   messageBlocks.forEach(block => {
-    if (block.dataset.rtlChecked) {
-      return;
-    }
+    // Don't skip blocks for Claude - need to re-check for streaming content
+    // if (block.dataset.rtlChecked) {
+    //   return;
+    // }
 
     const text = block.textContent.trim();
     if (text.length > 0) {
@@ -127,22 +129,24 @@ function alignClaudeBlocks() {
       if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
         block.style.direction = 'rtl';
         block.style.textAlign = 'right';
-        
-        // Handle nested content - including research document elements
+
+        // Handle nested content - including research document elements and streaming content
         const contentElements = block.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol');
         contentElements.forEach(element => {
           const elemText = element.textContent.trim();
+          if (elemText.length === 0) return; // Skip empty elements
+
           const elemFirstLetter = findFirstLetter(elemText);
           if (elemFirstLetter && /[\u0590-\u05FF]/.test(elemFirstLetter)) {
             element.style.direction = 'rtl';
             element.style.textAlign = 'right';
-            
+
             // Special handling for lists
             if (element.tagName === 'UL' || element.tagName === 'OL') {
               element.style.paddingRight = '20px';
               element.style.paddingLeft = '0';
             }
-            
+
             if (element.tagName === 'LI') {
               element.style.paddingRight = '15px';
               element.style.paddingLeft = '0';
@@ -695,7 +699,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.3 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.4 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
