@@ -1,14 +1,32 @@
 /**
- * RTL Helper for Notion, Claude & Gemini
- * Version 2.2.0: Moved controls to browser extension button, added Claude research documents support.
- * Last update: 2025-08-25
- * This script runs on Notion, Claude, and Gemini pages and aligns text blocks to RTL
+ * RTL Helper for Notion, Claude, Gemini & Bunny.net
+ * Version 2.3.1: Memory optimizations - added event listener cleanup and throttling.
+ * Last update: 2025-09-30
+ * This script runs on Notion, Claude, Gemini, and Bunny.net pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
  */
 
 // Extension state management
 let extensionEnabled = true;
 let observer = null;
+let bunnyEventListeners = new Map(); // Store event listeners for cleanup
+
+/**
+ * Throttle function to limit execution frequency
+ * @param {Function} func The function to throttle
+ * @param {number} limit Time limit in milliseconds
+ * @returns {Function} Throttled function
+ */
+function throttle(func, limit) {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
 
 /**
  * Finds the first actual letter in a string, ignoring spaces, emojis, and symbols.
@@ -22,13 +40,14 @@ function findFirstLetter(str) {
 
 /**
  * Determines the current website type
- * @returns {string} 'notion', 'claude', or 'gemini'
+ * @returns {string} 'notion', 'claude', 'gemini', or 'bunny'
  */
 function getWebsiteType() {
   const hostname = window.location.hostname;
   if (hostname === 'www.notion.so') return 'notion';
   if (hostname === 'claude.ai') return 'claude';
   if (hostname === 'gemini.google.com') return 'gemini';
+  if (hostname === 'dash.bunny.net') return 'bunny';
   return 'unknown';
 }
 
@@ -252,19 +271,77 @@ function alignGeminiBlocks() {
 }
 
 /**
+ * Applies RTL styling to Bunny.net form elements
+ */
+function alignBunnyBlocks() {
+  // Target Bunny.net form inputs and textareas
+  const bunnySelectors = [
+    'input.bn-input__input.bn-form__control__input',
+    'textarea.bn-form__control__input'
+  ];
+
+  const formElements = document.querySelectorAll(bunnySelectors.join(', '));
+
+  formElements.forEach(element => {
+    if (element.dataset.rtlChecked) {
+      return;
+    }
+
+    // For inputs, check the value; for empty inputs, we'll apply RTL on focus
+    const text = element.value.trim();
+
+    // Add event listeners for dynamic content
+    if (!element.dataset.rtlListenerAdded) {
+      // Create listener function and store reference
+      const inputListener = () => {
+        const currentText = element.value.trim();
+        if (currentText.length > 0) {
+          const firstLetter = findFirstLetter(currentText);
+          if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+            element.style.direction = 'rtl';
+            element.style.textAlign = 'right';
+          } else {
+            element.style.direction = 'ltr';
+            element.style.textAlign = 'left';
+          }
+        }
+      };
+
+      // Add listener and store reference for cleanup
+      element.addEventListener('input', inputListener);
+      bunnyEventListeners.set(element, inputListener);
+      element.dataset.rtlListenerAdded = 'true';
+    }
+
+    // Check current content
+    if (text.length > 0) {
+      const firstLetter = findFirstLetter(text);
+      if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+        element.style.direction = 'rtl';
+        element.style.textAlign = 'right';
+      }
+    }
+
+    element.dataset.rtlChecked = 'true';
+  });
+}
+
+/**
  * Main function to align Hebrew blocks based on website type
  */
 function alignHebrewBlocks() {
   if (!extensionEnabled) return;
 
   const websiteType = getWebsiteType();
-  
+
   if (websiteType === 'notion') {
     alignNotionBlocks();
   } else if (websiteType === 'claude') {
     alignClaudeBlocks();
   } else if (websiteType === 'gemini') {
     alignGeminiBlocks();
+  } else if (websiteType === 'bunny') {
+    alignBunnyBlocks();
   }
 }
 
@@ -352,7 +429,7 @@ function resetRTLStyling() {
       '.immersive-editor-container[data-rtl-checked]',
       '[contenteditable="true"][data-rtl-checked]'
     ];
-    
+
     const blocks = document.querySelectorAll(canvasSelectors.join(', '));
     blocks.forEach(block => {
       const textElements = block.querySelectorAll('[data-rtl-processed]');
@@ -363,8 +440,30 @@ function resetRTLStyling() {
         element.style.paddingLeft = '';
         delete element.dataset.rtlProcessed;
       });
-      
+
       delete block.dataset.rtlChecked;
+    });
+  } else if (websiteType === 'bunny') {
+    // Reset Bunny.net form element styling and remove event listeners
+    const bunnySelectors = [
+      'input.bn-input__input.bn-form__control__input[data-rtl-checked]',
+      'textarea.bn-form__control__input[data-rtl-checked]'
+    ];
+
+    const formElements = document.querySelectorAll(bunnySelectors.join(', '));
+    formElements.forEach(element => {
+      // Remove event listener if it exists
+      if (bunnyEventListeners.has(element)) {
+        const listener = bunnyEventListeners.get(element);
+        element.removeEventListener('input', listener);
+        bunnyEventListeners.delete(element);
+      }
+
+      // Reset styling
+      element.style.direction = '';
+      element.style.textAlign = '';
+      delete element.dataset.rtlChecked;
+      delete element.dataset.rtlListenerAdded;
     });
   }
 }
@@ -376,9 +475,12 @@ function startObserver() {
   if (observer) {
     observer.disconnect();
   }
-  
+
   const websiteType = getWebsiteType();
-  
+
+  // Create throttled version of alignHebrewBlocks
+  const throttledAlign = throttle(alignHebrewBlocks, 200);
+
   observer = new MutationObserver((mutations) => {
     // For Gemini, add a small delay to ensure content is rendered
     if (websiteType === 'gemini') {
@@ -395,16 +497,17 @@ function startObserver() {
           return false;
         });
       });
-      
+
       if (hasRelevantChanges) {
         console.log('RTL Helper: Detected relevant changes in Gemini, applying RTL...');
         setTimeout(() => {
           alignHebrewBlocks();
         }, 100);
       }
-      alignHebrewBlocks();
+      throttledAlign();
     } else {
-      alignHebrewBlocks();
+      // Use throttled version to reduce processing overhead
+      throttledAlign();
     }
   });
 
@@ -468,7 +571,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`RTL Helper v2.2.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`RTL Helper v2.3.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
