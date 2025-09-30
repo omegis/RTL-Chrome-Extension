@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.0: Added ManyChat support for textarea elements.
+ * Version 2.4.1: Fixed ManyChat to target visible div._content_okm14_17 (dual-display system).
  * Last update: 2025-09-30
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -329,7 +329,7 @@ function alignBunnyBlocks() {
 }
 
 /**
- * Applies RTL styling to ManyChat textarea elements
+ * Applies RTL styling to ManyChat textarea elements and their visible counterparts
  */
 function alignManychatBlocks() {
   // Target ManyChat textarea elements
@@ -345,6 +345,10 @@ function alignManychatBlocks() {
       return;
     }
 
+    // Find the visible content div (ManyChat's dual-display system)
+    const parent = element.parentElement;
+    const visibleDiv = parent ? parent.querySelector('div._content_okm14_17') : null;
+
     // Check current value
     const text = element.value.trim();
 
@@ -356,11 +360,21 @@ function alignManychatBlocks() {
         if (currentText.length > 0) {
           const firstLetter = findFirstLetter(currentText);
           if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+            // Apply RTL to both textarea and visible div
             element.style.direction = 'rtl';
             element.style.textAlign = 'right';
+            if (visibleDiv) {
+              visibleDiv.style.direction = 'rtl';
+              visibleDiv.style.textAlign = 'right';
+            }
           } else {
+            // Apply LTR to both textarea and visible div
             element.style.direction = 'ltr';
             element.style.textAlign = 'left';
+            if (visibleDiv) {
+              visibleDiv.style.direction = 'ltr';
+              visibleDiv.style.textAlign = 'left';
+            }
           }
         }
       };
@@ -371,16 +385,23 @@ function alignManychatBlocks() {
       element.dataset.rtlListenerAdded = 'true';
     }
 
-    // Check current content
+    // Check current content and apply to both elements
     if (text.length > 0) {
       const firstLetter = findFirstLetter(text);
       if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
         element.style.direction = 'rtl';
         element.style.textAlign = 'right';
+        if (visibleDiv) {
+          visibleDiv.style.direction = 'rtl';
+          visibleDiv.style.textAlign = 'right';
+        }
       }
     }
 
     element.dataset.rtlChecked = 'true';
+    if (visibleDiv) {
+      visibleDiv.dataset.rtlChecked = 'true';
+    }
   });
 }
 
@@ -541,7 +562,16 @@ function resetRTLStyling() {
         manychatEventListeners.delete(element);
       }
 
-      // Reset styling
+      // Find and reset the visible content div as well
+      const parent = element.parentElement;
+      const visibleDiv = parent ? parent.querySelector('div._content_okm14_17[data-rtl-checked]') : null;
+      if (visibleDiv) {
+        visibleDiv.style.direction = '';
+        visibleDiv.style.textAlign = '';
+        delete visibleDiv.dataset.rtlChecked;
+      }
+
+      // Reset textarea styling
       element.style.direction = '';
       element.style.textAlign = '';
       delete element.dataset.rtlChecked;
@@ -653,7 +683,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
