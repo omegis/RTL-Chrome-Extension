@@ -1,7 +1,7 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.4: Improved Claude chat support for streaming responses and .standard-markdown.
- * Last update: 2025-09-30
+ * Version 2.4.5: Added RTL support for Claude chat input box (tiptap ProseMirror contenteditable).
+ * Last update: 2025-12-03
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
  */
@@ -11,6 +11,7 @@ let extensionEnabled = true;
 let observer = null;
 let bunnyEventListeners = new Map(); // Store event listeners for cleanup
 let manychatEventListeners = new Map(); // Store event listeners for cleanup
+let claudeInputEventListeners = new Map(); // Store event listeners for Claude chat input cleanup
 
 /**
  * Throttle function to limit execution frequency
@@ -157,6 +158,86 @@ function alignClaudeBlocks() {
     }
 
     block.dataset.rtlChecked = 'true';
+  });
+
+  // Handle Claude chat input box (tiptap ProseMirror contenteditable)
+  alignClaudeChatInput();
+}
+
+/**
+ * Applies RTL styling to Claude chat input box dynamically
+ */
+function alignClaudeChatInput() {
+  // Target the chat input contenteditable div
+  const chatInputSelectors = [
+    'div.tiptap.ProseMirror[contenteditable="true"]',
+    '[data-testid="chat-input"]'
+  ];
+
+  const chatInputs = document.querySelectorAll(chatInputSelectors.join(', '));
+
+  chatInputs.forEach(input => {
+    // Add event listener for dynamic RTL detection (only once per element)
+    if (!input.dataset.rtlListenerAdded) {
+      const inputListener = () => {
+        // Get all paragraph elements inside the input
+        const paragraphs = input.querySelectorAll('p');
+
+        paragraphs.forEach(p => {
+          const text = p.textContent.trim();
+          if (text.length > 0) {
+            const firstLetter = findFirstLetter(text);
+            if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+              p.style.direction = 'rtl';
+              p.style.textAlign = 'right';
+            } else {
+              p.style.direction = 'ltr';
+              p.style.textAlign = 'left';
+            }
+          } else {
+            // Empty paragraph - reset to default
+            p.style.direction = '';
+            p.style.textAlign = '';
+          }
+        });
+
+        // Also check the container itself for single-line text
+        const containerText = input.textContent.trim();
+        if (containerText.length > 0 && paragraphs.length === 0) {
+          const firstLetter = findFirstLetter(containerText);
+          if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+            input.style.direction = 'rtl';
+            input.style.textAlign = 'right';
+          } else {
+            input.style.direction = 'ltr';
+            input.style.textAlign = 'left';
+          }
+        }
+      };
+
+      // Listen for input events
+      input.addEventListener('input', inputListener);
+      claudeInputEventListeners.set(input, inputListener);
+      input.dataset.rtlListenerAdded = 'true';
+
+      // Run once immediately to check existing content
+      inputListener();
+    }
+
+    // Check current content
+    const paragraphs = input.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      const text = p.textContent.trim();
+      if (text.length > 0) {
+        const firstLetter = findFirstLetter(text);
+        if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+          p.style.direction = 'rtl';
+          p.style.textAlign = 'right';
+        }
+      }
+    });
+
+    input.dataset.rtlChecked = 'true';
   });
 }
 
@@ -489,12 +570,12 @@ function resetRTLStyling() {
       '#markdown-artifact[data-rtl-checked]',
       '.font-claude-response[data-rtl-checked]'
     ];
-    
+
     const blocks = document.querySelectorAll(messageSelectors.join(', '));
     blocks.forEach(block => {
       block.style.direction = '';
       block.style.textAlign = '';
-      
+
       const contentElements = block.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol');
       contentElements.forEach(element => {
         element.style.direction = '';
@@ -502,8 +583,37 @@ function resetRTLStyling() {
         element.style.paddingRight = '';
         element.style.paddingLeft = '';
       });
-      
+
       delete block.dataset.rtlChecked;
+    });
+
+    // Reset Claude chat input box styling and remove event listeners
+    const chatInputSelectors = [
+      'div.tiptap.ProseMirror[contenteditable="true"][data-rtl-checked]',
+      '[data-testid="chat-input"][data-rtl-checked]'
+    ];
+
+    const chatInputs = document.querySelectorAll(chatInputSelectors.join(', '));
+    chatInputs.forEach(input => {
+      // Remove event listener if it exists
+      if (claudeInputEventListeners.has(input)) {
+        const listener = claudeInputEventListeners.get(input);
+        input.removeEventListener('input', listener);
+        claudeInputEventListeners.delete(input);
+      }
+
+      // Reset styling on container and child paragraphs
+      input.style.direction = '';
+      input.style.textAlign = '';
+
+      const paragraphs = input.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        p.style.direction = '';
+        p.style.textAlign = '';
+      });
+
+      delete input.dataset.rtlChecked;
+      delete input.dataset.rtlListenerAdded;
     });
   } else if (websiteType === 'gemini') {
     // Reset Gemini Canvas styling
@@ -699,7 +809,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.4 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.5 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
