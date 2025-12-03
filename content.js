@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.5: Added RTL support for Claude chat input box (tiptap ProseMirror contenteditable).
+ * Version 2.4.6: Added RTL support for Claude and Gemini chat input boxes.
  * Last update: 2025-12-03
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -12,6 +12,7 @@ let observer = null;
 let bunnyEventListeners = new Map(); // Store event listeners for cleanup
 let manychatEventListeners = new Map(); // Store event listeners for cleanup
 let claudeInputEventListeners = new Map(); // Store event listeners for Claude chat input cleanup
+let geminiInputEventListeners = new Map(); // Store event listeners for Gemini chat input cleanup
 
 /**
  * Throttle function to limit execution frequency
@@ -355,6 +356,105 @@ function alignGeminiBlocks() {
   if (!foundElements) {
     console.log('RTL Helper: No Gemini Canvas elements found yet. Will retry on next mutation.');
   }
+
+  // Handle Gemini chat input box (ql-editor contenteditable)
+  alignGeminiChatInput();
+}
+
+/**
+ * Applies RTL styling to Gemini chat input box dynamically
+ */
+function alignGeminiChatInput() {
+  // Target the chat input contenteditable div (Quill editor)
+  const chatInputSelectors = [
+    'rich-textarea .ql-editor[contenteditable="true"]',
+    'div.ql-editor.textarea[contenteditable="true"]'
+  ];
+
+  const chatInputs = document.querySelectorAll(chatInputSelectors.join(', '));
+
+  chatInputs.forEach(input => {
+    // Add event listener for dynamic RTL detection (only once per element)
+    if (!input.dataset.rtlListenerAdded) {
+      const inputListener = () => {
+        // Get all paragraph elements inside the input
+        const paragraphs = input.querySelectorAll('p');
+
+        paragraphs.forEach(p => {
+          const text = p.textContent.trim();
+          if (text.length > 0) {
+            const firstLetter = findFirstLetter(text);
+            if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+              p.style.direction = 'rtl';
+              p.style.textAlign = 'right';
+            } else {
+              p.style.direction = 'ltr';
+              p.style.textAlign = 'left';
+            }
+          } else {
+            // Empty paragraph - reset to default
+            p.style.direction = '';
+            p.style.textAlign = '';
+          }
+        });
+
+        // Also check the container itself for single-line text or when no p elements
+        const containerText = input.textContent.trim();
+        if (containerText.length > 0) {
+          const firstLetter = findFirstLetter(containerText);
+          if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+            input.style.direction = 'rtl';
+            input.style.textAlign = 'right';
+            // Also set the dir attribute for proper cursor behavior
+            input.setAttribute('dir', 'rtl');
+          } else {
+            input.style.direction = 'ltr';
+            input.style.textAlign = 'left';
+            input.setAttribute('dir', 'ltr');
+          }
+        } else {
+          // Empty input - reset to default
+          input.style.direction = '';
+          input.style.textAlign = '';
+          input.removeAttribute('dir');
+        }
+      };
+
+      // Listen for input events
+      input.addEventListener('input', inputListener);
+      geminiInputEventListeners.set(input, inputListener);
+      input.dataset.rtlListenerAdded = 'true';
+
+      // Run once immediately to check existing content
+      inputListener();
+    }
+
+    // Check current content
+    const paragraphs = input.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      const text = p.textContent.trim();
+      if (text.length > 0) {
+        const firstLetter = findFirstLetter(text);
+        if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+          p.style.direction = 'rtl';
+          p.style.textAlign = 'right';
+        }
+      }
+    });
+
+    // Also check container level
+    const containerText = input.textContent.trim();
+    if (containerText.length > 0) {
+      const firstLetter = findFirstLetter(containerText);
+      if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+        input.style.direction = 'rtl';
+        input.style.textAlign = 'right';
+        input.setAttribute('dir', 'rtl');
+      }
+    }
+
+    input.dataset.rtlChecked = 'true';
+  });
 }
 
 /**
@@ -637,6 +737,36 @@ function resetRTLStyling() {
 
       delete block.dataset.rtlChecked;
     });
+
+    // Reset Gemini chat input box styling and remove event listeners
+    const chatInputSelectors = [
+      'rich-textarea .ql-editor[contenteditable="true"][data-rtl-checked]',
+      'div.ql-editor.textarea[contenteditable="true"][data-rtl-checked]'
+    ];
+
+    const chatInputs = document.querySelectorAll(chatInputSelectors.join(', '));
+    chatInputs.forEach(input => {
+      // Remove event listener if it exists
+      if (geminiInputEventListeners.has(input)) {
+        const listener = geminiInputEventListeners.get(input);
+        input.removeEventListener('input', listener);
+        geminiInputEventListeners.delete(input);
+      }
+
+      // Reset styling on container and child paragraphs
+      input.style.direction = '';
+      input.style.textAlign = '';
+      input.removeAttribute('dir');
+
+      const paragraphs = input.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        p.style.direction = '';
+        p.style.textAlign = '';
+      });
+
+      delete input.dataset.rtlChecked;
+      delete input.dataset.rtlListenerAdded;
+    });
   } else if (websiteType === 'bunny') {
     // Reset Bunny.net form element styling and remove event listeners
     const bunnySelectors = [
@@ -809,7 +939,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.5 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.6 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
