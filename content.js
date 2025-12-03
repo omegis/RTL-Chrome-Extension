@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.6: Added RTL support for Claude and Gemini chat input boxes.
+ * Version 2.4.7: Fixed Claude chat input RTL - now sets container direction and dir attribute.
  * Last update: 2025-12-03
  * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
  * if their first letter is a Hebrew character.
@@ -202,17 +202,24 @@ function alignClaudeChatInput() {
           }
         });
 
-        // Also check the container itself for single-line text
+        // Also set the container direction for proper cursor behavior
         const containerText = input.textContent.trim();
-        if (containerText.length > 0 && paragraphs.length === 0) {
+        if (containerText.length > 0) {
           const firstLetter = findFirstLetter(containerText);
           if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
             input.style.direction = 'rtl';
             input.style.textAlign = 'right';
+            input.setAttribute('dir', 'rtl');
           } else {
             input.style.direction = 'ltr';
             input.style.textAlign = 'left';
+            input.setAttribute('dir', 'ltr');
           }
+        } else {
+          // Empty input - reset to default
+          input.style.direction = '';
+          input.style.textAlign = '';
+          input.removeAttribute('dir');
         }
       };
 
@@ -237,6 +244,17 @@ function alignClaudeChatInput() {
         }
       }
     });
+
+    // Also check container level
+    const containerText = input.textContent.trim();
+    if (containerText.length > 0) {
+      const firstLetter = findFirstLetter(containerText);
+      if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+        input.style.direction = 'rtl';
+        input.style.textAlign = 'right';
+        input.setAttribute('dir', 'rtl');
+      }
+    }
 
     input.dataset.rtlChecked = 'true';
   });
@@ -705,6 +723,7 @@ function resetRTLStyling() {
       // Reset styling on container and child paragraphs
       input.style.direction = '';
       input.style.textAlign = '';
+      input.removeAttribute('dir');
 
       const paragraphs = input.querySelectorAll('p');
       paragraphs.forEach(p => {
@@ -939,7 +958,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.6 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.4.7 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
