@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Rotem Daily RTL",
-  "version": "2.4.7",
-  "description": "Automatically sets text direction to RTL for Hebrew content in Notion, Claude, Gemini Canvas, Bunny.net and ManyChat.",
+  "version": "2.5.0",
+  "description": "Automatically sets text direction to RTL for Hebrew content in Notion, Claude, Gemini Canvas, Bunny.net, ManyChat and Spotify Creators.",
   "author": "Your Name",
   "permissions": ["storage", "tabs"],
   "action": {
@@ -20,7 +20,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.notion.so/*", "https://claude.ai/*", "https://gemini.google.com/*", "https://dash.bunny.net/*", "https://app.manychat.com/*"],
+      "matches": ["https://www.notion.so/*", "https://claude.ai/*", "https://gemini.google.com/*", "https://dash.bunny.net/*", "https://app.manychat.com/*", "https://creators.spotify.com/*"],
       "js": ["content.js"]
     }
   ]

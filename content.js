@@ -1,9 +1,9 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.4.7: Fixed Claude chat input RTL - now sets container direction and dir attribute.
- * Last update: 2025-12-03
- * This script runs on Notion, Claude, Gemini, Bunny.net, and ManyChat pages and aligns text blocks to RTL
- * if their first letter is a Hebrew character.
+ * Version 2.5.0: Added RTL support for Spotify Creators comment section.
+ * Last update: 2025-12-15
+ * This script runs on Notion, Claude, Gemini, Bunny.net, ManyChat, and Spotify Creators pages
+ * and aligns text blocks to RTL if their first letter is a Hebrew character.
  */
 
 // Extension state management
@@ -43,7 +43,7 @@ function findFirstLetter(str) {
 
 /**
  * Determines the current website type
- * @returns {string} 'notion', 'claude', 'gemini', 'bunny', or 'manychat'
+ * @returns {string} 'notion', 'claude', 'gemini', 'bunny', 'manychat', or 'spotify'
  */
 function getWebsiteType() {
   const hostname = window.location.hostname;
@@ -52,6 +52,7 @@ function getWebsiteType() {
   if (hostname === 'gemini.google.com') return 'gemini';
   if (hostname === 'dash.bunny.net') return 'bunny';
   if (hostname === 'app.manychat.com') return 'manychat';
+  if (hostname === 'creators.spotify.com') return 'spotify';
   return 'unknown';
 }
 
@@ -608,6 +609,50 @@ function alignManychatBlocks() {
 }
 
 /**
+ * Applies RTL styling to Spotify Creators comment section
+ */
+function alignSpotifyBlocks() {
+  // Target Spotify Creators comment text elements
+  const spotifySelectors = [
+    'span[class*="CommentText"]',                    // Comment text spans
+    'div[class*="TruncatedMessage"]',                // Truncated message containers
+    'div[class*="CommentWrapper"]',                  // Comment wrappers
+    'a[class*="text-link"]',                         // Episode title links
+    'span[data-encore-id="text"]'                    // General text spans with encore data attribute
+  ];
+
+  const textElements = document.querySelectorAll(spotifySelectors.join(', '));
+
+  textElements.forEach(element => {
+    if (element.dataset.rtlChecked) {
+      return;
+    }
+
+    const text = element.textContent.trim();
+    if (text.length > 0) {
+      const firstLetter = findFirstLetter(text);
+
+      if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
+        element.style.direction = 'rtl';
+        element.style.textAlign = 'right';
+
+        // For comment wrappers, also handle the internal layout
+        if (element.className && element.className.includes('CommentWrapper')) {
+          // Find the text display wrapper inside and apply RTL
+          const textWrapper = element.querySelector('div[class*="CommentTextDisplayWrapper"]');
+          if (textWrapper) {
+            textWrapper.style.direction = 'rtl';
+            textWrapper.style.textAlign = 'right';
+          }
+        }
+      }
+    }
+
+    element.dataset.rtlChecked = 'true';
+  });
+}
+
+/**
  * Main function to align Hebrew blocks based on website type
  */
 function alignHebrewBlocks() {
@@ -625,6 +670,8 @@ function alignHebrewBlocks() {
     alignBunnyBlocks();
   } else if (websiteType === 'manychat') {
     alignManychatBlocks();
+  } else if (websiteType === 'spotify') {
+    alignSpotifyBlocks();
   }
 }
 
@@ -839,6 +886,30 @@ function resetRTLStyling() {
       delete element.dataset.rtlChecked;
       delete element.dataset.rtlListenerAdded;
     });
+  } else if (websiteType === 'spotify') {
+    // Reset Spotify Creators comment styling
+    const spotifySelectors = [
+      'span[class*="CommentText"][data-rtl-checked]',
+      'div[class*="TruncatedMessage"][data-rtl-checked]',
+      'div[class*="CommentWrapper"][data-rtl-checked]',
+      'a[class*="text-link"][data-rtl-checked]',
+      'span[data-encore-id="text"][data-rtl-checked]'
+    ];
+
+    const elements = document.querySelectorAll(spotifySelectors.join(', '));
+    elements.forEach(element => {
+      element.style.direction = '';
+      element.style.textAlign = '';
+
+      // Reset inner text display wrapper if present
+      const textWrapper = element.querySelector('div[class*="CommentTextDisplayWrapper"]');
+      if (textWrapper) {
+        textWrapper.style.direction = '';
+        textWrapper.style.textAlign = '';
+      }
+
+      delete element.dataset.rtlChecked;
+    });
   }
 }
 
@@ -958,7 +1029,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.4.7 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.5.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
   });
 }
 
