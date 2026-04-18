@@ -61,6 +61,47 @@
       font-size: 11px;
       color: #9ca3af;
     }
+
+    .divider {
+      height: 1px;
+      background-color: #f3f4f6;
+      margin: 4px 0;
+    }
+
+    .font-section {
+      padding: 8px 16px;
+    }
+
+    .font-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #374151;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+
+    .font-toggle input[type="checkbox"] {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .font-select {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      color: #374151;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .font-select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -72,6 +113,20 @@
     </button>
     <div class="info">
       <span id="info-text">Click to toggle</span>
+    </div>
+    <div class="divider"></div>
+    <div class="font-section">
+      <label class="font-toggle">
+        <input type="checkbox" id="font-enabled">
+        <span>Hebrew Font</span>
+      </label>
+      <select id="font-select" class="font-select" disabled>
+        <option value="Frank Ruhl Libre">Frank Ruhl Libre</option>
+        <option value="Heebo">Heebo</option>
+        <option value="Assistant">Assistant</option>
+        <option value="Noto Sans Hebrew">Noto Sans Hebrew</option>
+        <option value="Rubik">Rubik</option>
+      </select>
     </div>
   </div>
   <script src="popup.js"></script>

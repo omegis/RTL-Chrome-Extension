@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Rotem Daily RTL",
-  "version": "2.5.0",
-  "description": "Automatically sets text direction to RTL for Hebrew content in Notion, Claude, Gemini Canvas, Bunny.net, ManyChat and Spotify Creators.",
-  "author": "Your Name",
+  "version": "2.6.1",
+  "description": "Automatically applies RTL text direction for Hebrew content on supported websites.",
+  "author": "Rotem Bar",
+  "homepage_url": "https://github.com/omegis/RTL-Chrome-Extension",
   "permissions": ["storage", "tabs"],
   "action": {
     "default_popup": "popup.html",

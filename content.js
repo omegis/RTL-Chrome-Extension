@@ -1,18 +1,73 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.5.0: Added RTL support for Spotify Creators comment section.
- * Last update: 2025-12-15
+ * Version 2.6.1: Claude blocks use Hebrew-dominant detection instead of first-letter only.
+ * Last update: 2026-04-18
  * This script runs on Notion, Claude, Gemini, Bunny.net, ManyChat, and Spotify Creators pages
  * and aligns text blocks to RTL if their first letter is a Hebrew character.
  */
 
 // Extension state management
 let extensionEnabled = true;
+let fontEnabled = false;
+let selectedFont = 'Frank Ruhl Libre';
 let observer = null;
 let bunnyEventListeners = new Map(); // Store event listeners for cleanup
 let manychatEventListeners = new Map(); // Store event listeners for cleanup
 let claudeInputEventListeners = new Map(); // Store event listeners for Claude chat input cleanup
 let geminiInputEventListeners = new Map(); // Store event listeners for Gemini chat input cleanup
+
+/**
+ * Injects Google Fonts stylesheet for Hebrew fonts
+ */
+function injectGoogleFonts() {
+  if (document.getElementById('rtl-helper-google-fonts')) return;
+  const link = document.createElement('link');
+  link.id = 'rtl-helper-google-fonts';
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Frank+Ruhl+Libre:wght@300..900&family=Heebo:wght@100..900&family=Noto+Sans+Hebrew:wght@100..900&family=Rubik:wght@300..900&display=swap';
+  document.head.appendChild(link);
+}
+
+/**
+ * Applies the selected font to an element if font feature is enabled
+ * @param {HTMLElement} element The element to apply the font to
+ */
+function applyFont(element) {
+  if (fontEnabled && selectedFont) {
+    element.style.fontFamily = `"${selectedFont}", sans-serif`;
+    element.dataset.rtlFont = 'true';
+  }
+}
+
+/**
+ * Removes custom font from all elements that had it applied
+ */
+function removeAllFonts() {
+  const elements = document.querySelectorAll('[data-rtl-font]');
+  elements.forEach(el => {
+    el.style.fontFamily = '';
+    delete el.dataset.rtlFont;
+  });
+}
+
+/**
+ * Re-applies font to all elements that currently have RTL styling
+ */
+function reapplyFonts() {
+  const elements = document.querySelectorAll('[data-rtl-checked]');
+  elements.forEach(el => {
+    if (el.style.direction === 'rtl') {
+      applyFont(el);
+    }
+    // Also check nested elements
+    const nested = el.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol, span');
+    nested.forEach(child => {
+      if (child.style.direction === 'rtl') {
+        applyFont(child);
+      }
+    });
+  });
+}
 
 /**
  * Throttle function to limit execution frequency
@@ -39,6 +94,19 @@ function throttle(func, limit) {
 function findFirstLetter(str) {
   const match = str.match(/\p{L}/u);
   return match ? match[0] : null;
+}
+
+/**
+ * Decides if a string is predominantly Hebrew by comparing Hebrew vs Latin letter counts.
+ * Used on Claude where responses often open with English proper nouns ("Opus", "Claude API")
+ * but are otherwise Hebrew — first-letter heuristic fails those cases.
+ * @param {string} str The string to evaluate.
+ * @returns {boolean} True if Hebrew letters outnumber Latin letters.
+ */
+function isHebrewDominant(str) {
+  const hebrew = (str.match(/[\u0590-\u05FF]/g) || []).length;
+  const latin = (str.match(/[A-Za-z]/g) || []).length;
+  return hebrew > 0 && hebrew > latin;
 }
 
 /**
@@ -77,6 +145,7 @@ function alignNotionBlocks() {
         if (editableElement) {
           editableElement.style.direction = 'rtl';
           editableElement.style.textAlign = 'right';
+          applyFont(editableElement);
         }
 
         // Handle lists
@@ -126,37 +195,33 @@ function alignClaudeBlocks() {
     // }
 
     const text = block.textContent.trim();
-    if (text.length > 0) {
-      const firstLetter = findFirstLetter(text);
+    if (text.length > 0 && isHebrewDominant(text)) {
+      block.style.direction = 'rtl';
+      block.style.textAlign = 'right';
+      applyFont(block);
 
-      if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
-        block.style.direction = 'rtl';
-        block.style.textAlign = 'right';
+      // Handle nested content - including research document elements and streaming content
+      const contentElements = block.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol');
+      contentElements.forEach(element => {
+        const elemText = element.textContent.trim();
+        if (elemText.length === 0) return;
 
-        // Handle nested content - including research document elements and streaming content
-        const contentElements = block.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, ul, ol');
-        contentElements.forEach(element => {
-          const elemText = element.textContent.trim();
-          if (elemText.length === 0) return; // Skip empty elements
+        if (isHebrewDominant(elemText)) {
+          element.style.direction = 'rtl';
+          element.style.textAlign = 'right';
+          applyFont(element);
 
-          const elemFirstLetter = findFirstLetter(elemText);
-          if (elemFirstLetter && /[\u0590-\u05FF]/.test(elemFirstLetter)) {
-            element.style.direction = 'rtl';
-            element.style.textAlign = 'right';
-
-            // Special handling for lists
-            if (element.tagName === 'UL' || element.tagName === 'OL') {
-              element.style.paddingRight = '20px';
-              element.style.paddingLeft = '0';
-            }
-
-            if (element.tagName === 'LI') {
-              element.style.paddingRight = '15px';
-              element.style.paddingLeft = '0';
-            }
+          if (element.tagName === 'UL' || element.tagName === 'OL') {
+            element.style.paddingRight = '20px';
+            element.style.paddingLeft = '0';
           }
-        });
-      }
+
+          if (element.tagName === 'LI') {
+            element.style.paddingRight = '15px';
+            element.style.paddingLeft = '0';
+          }
+        }
+      });
     }
 
     block.dataset.rtlChecked = 'true';
@@ -192,6 +257,7 @@ function alignClaudeChatInput() {
             if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
               p.style.direction = 'rtl';
               p.style.textAlign = 'right';
+              applyFont(p);
             } else {
               p.style.direction = 'ltr';
               p.style.textAlign = 'left';
@@ -211,6 +277,7 @@ function alignClaudeChatInput() {
             input.style.direction = 'rtl';
             input.style.textAlign = 'right';
             input.setAttribute('dir', 'rtl');
+            applyFont(input);
           } else {
             input.style.direction = 'ltr';
             input.style.textAlign = 'left';
@@ -242,6 +309,7 @@ function alignClaudeChatInput() {
         if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
           p.style.direction = 'rtl';
           p.style.textAlign = 'right';
+          applyFont(p);
         }
       }
     });
@@ -254,6 +322,7 @@ function alignClaudeChatInput() {
         input.style.direction = 'rtl';
         input.style.textAlign = 'right';
         input.setAttribute('dir', 'rtl');
+        applyFont(input);
       }
     }
 
@@ -308,9 +377,10 @@ function alignGeminiBlocks() {
               
               if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
                 console.log(`RTL Helper: Applying RTL to element: ${element.tagName}, text: ${text.substring(0, 50)}...`);
-                
+
                 element.style.direction = 'rtl';
                 element.style.textAlign = 'right';
+                applyFont(element);
                 
                 // Handle list items specially
                 if (element.tagName === 'LI') {
@@ -350,18 +420,19 @@ function alignGeminiBlocks() {
               if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
                 element.style.direction = 'rtl';
                 element.style.textAlign = 'right';
-                
+                applyFont(element);
+
                 if (element.tagName === 'LI') {
                   element.style.paddingRight = '20px';
                   element.style.paddingLeft = '0';
                 }
-                
+
                 if (element.tagName === 'UL' || element.tagName === 'OL') {
                   element.style.paddingRight = '20px';
                   element.style.paddingLeft = '0';
                 }
               }
-              
+
               element.dataset.rtlProcessed = 'true';
             }
           });
@@ -406,6 +477,7 @@ function alignGeminiChatInput() {
             if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
               p.style.direction = 'rtl';
               p.style.textAlign = 'right';
+              applyFont(p);
             } else {
               p.style.direction = 'ltr';
               p.style.textAlign = 'left';
@@ -426,6 +498,7 @@ function alignGeminiChatInput() {
             input.style.textAlign = 'right';
             // Also set the dir attribute for proper cursor behavior
             input.setAttribute('dir', 'rtl');
+            applyFont(input);
           } else {
             input.style.direction = 'ltr';
             input.style.textAlign = 'left';
@@ -457,6 +530,7 @@ function alignGeminiChatInput() {
         if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
           p.style.direction = 'rtl';
           p.style.textAlign = 'right';
+          applyFont(p);
         }
       }
     });
@@ -469,6 +543,7 @@ function alignGeminiChatInput() {
         input.style.direction = 'rtl';
         input.style.textAlign = 'right';
         input.setAttribute('dir', 'rtl');
+        applyFont(input);
       }
     }
 
@@ -506,6 +581,7 @@ function alignBunnyBlocks() {
           if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
             element.style.direction = 'rtl';
             element.style.textAlign = 'right';
+            applyFont(element);
           } else {
             element.style.direction = 'ltr';
             element.style.textAlign = 'left';
@@ -525,6 +601,7 @@ function alignBunnyBlocks() {
       if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
         element.style.direction = 'rtl';
         element.style.textAlign = 'right';
+        applyFont(element);
       }
     }
 
@@ -565,9 +642,11 @@ function alignManychatBlocks() {
             // Apply RTL to both textarea and visible div
             element.style.direction = 'rtl';
             element.style.textAlign = 'right';
+            applyFont(element);
             if (visibleDiv) {
               visibleDiv.style.direction = 'rtl';
               visibleDiv.style.textAlign = 'right';
+              applyFont(visibleDiv);
             }
           } else {
             // Apply LTR to both textarea and visible div
@@ -593,9 +672,11 @@ function alignManychatBlocks() {
       if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
         element.style.direction = 'rtl';
         element.style.textAlign = 'right';
+        applyFont(element);
         if (visibleDiv) {
           visibleDiv.style.direction = 'rtl';
           visibleDiv.style.textAlign = 'right';
+          applyFont(visibleDiv);
         }
       }
     }
@@ -635,6 +716,7 @@ function alignSpotifyBlocks() {
       if (firstLetter && /[\u0590-\u05FF]/.test(firstLetter)) {
         element.style.direction = 'rtl';
         element.style.textAlign = 'right';
+        applyFont(element);
 
         // For comment wrappers, also handle the internal layout
         if (element.className && element.className.includes('CommentWrapper')) {
@@ -681,7 +763,7 @@ function alignHebrewBlocks() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'toggleExtension') {
     extensionEnabled = request.enabled;
-    
+
     if (extensionEnabled) {
       // Re-enable observer and process existing content
       startObserver();
@@ -691,8 +773,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       stopObserver();
       resetRTLStyling();
     }
-    
+
     console.log(`RTL Helper: Extension ${extensionEnabled ? 'enabled' : 'disabled'} via popup`);
+  }
+
+  if (request.action === 'updateFont') {
+    fontEnabled = request.fontEnabled;
+    selectedFont = request.selectedFont;
+
+    if (fontEnabled) {
+      injectGoogleFonts();
+      // Remove old fonts first, then reapply with new selection
+      removeAllFonts();
+      reapplyFonts();
+    } else {
+      removeAllFonts();
+    }
+
+    console.log(`RTL Helper: Font ${fontEnabled ? 'enabled (' + selectedFont + ')' : 'disabled'}`);
   }
 });
 
@@ -702,6 +800,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * Resets all RTL styling applied by the extension
  */
 function resetRTLStyling() {
+  // Remove all custom fonts when resetting
+  removeAllFonts();
+
   const websiteType = getWebsiteType();
   
   if (websiteType === 'notion') {
@@ -978,8 +1079,15 @@ function stopObserver() {
  */
 function initializeExtension() {
   // Load saved state from chrome storage
-  chrome.storage.local.get(['rtlHelperEnabled'], (result) => {
+  chrome.storage.local.get(['rtlHelperEnabled', 'fontEnabled', 'selectedFont'], (result) => {
     extensionEnabled = result.rtlHelperEnabled !== false; // Default to true
+    fontEnabled = result.fontEnabled === true; // Default to false
+    selectedFont = result.selectedFont || 'Frank Ruhl Libre';
+
+    // Inject Google Fonts if font feature is enabled
+    if (fontEnabled) {
+      injectGoogleFonts();
+    }
     
     if (extensionEnabled) {
       startObserver();
@@ -1029,7 +1137,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.5.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`Rotem Daily RTL v2.6.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
   });
 }
 

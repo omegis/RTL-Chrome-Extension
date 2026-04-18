@@ -42,10 +42,10 @@
 </head>
 <body>
     <h1>Rotem Daily RTL - Privacy Policy</h1>
-    <p class="version">Last Updated: September 30, 2025 | Version 2.4.4</p>
+    <p class="version">Last Updated: March 31, 2026 | Version 2.6.0</p>
 
     <div class="highlight">
-        <strong>Summary:</strong> Rotem Daily RTL does not collect, store, or transmit any user data. This extension operates entirely locally in your browser.
+        <strong>Summary:</strong> Rotem Daily RTL does not collect, store, or transmit any personal user data. The extension operates locally in your browser with one optional external request described below.
     </div>
 
     <h2>1. Information Collection</h2>
@@ -57,17 +57,28 @@
         <li>Access website content or user input</li>
         <li>Store passwords, credentials, or personal data</li>
         <li>Use cookies or tracking technologies</li>
-        <li>Send any data to external servers</li>
+        <li>Send any user data to external servers</li>
     </ul>
 
     <h2>2. Data Storage</h2>
-    <p>The extension uses Chrome's local storage API to save <strong>one single preference</strong>:</p>
+    <p>The extension uses Chrome's local storage API to save the following preferences:</p>
     <ul>
-        <li><strong>Extension Enable/Disable State</strong> - A simple boolean (true/false) that remembers if you want the extension active or disabled.</li>
+        <li><strong>Extension Enable/Disable State</strong> - A boolean (true/false) that remembers if you want the extension active or disabled.</li>
+        <li><strong>Hebrew Font Enabled</strong> - A boolean that remembers if the optional Hebrew font feature is active (disabled by default).</li>
+        <li><strong>Selected Font</strong> - The name of the Hebrew font you selected (e.g., "Heebo", "Rubik").</li>
     </ul>
-    <p>This preference is stored <strong>locally on your device only</strong> and is never transmitted anywhere.</p>
+    <p>These preferences are stored <strong>locally on your device only</strong> and are never transmitted anywhere.</p>
 
-    <h2>3. Permissions Explanation</h2>
+    <h2>3. External Network Requests</h2>
+    <p>The extension makes <strong>no network requests by default</strong>. However, if you choose to enable the optional <strong>Hebrew Font</strong> feature, the extension loads font files from <strong>Google Fonts</strong> (<code>fonts.googleapis.com</code>).</p>
+    <ul>
+        <li>This request is made solely to load the selected Hebrew font for display purposes.</li>
+        <li>No personal data, identifiers, or browsing information is sent to Google.</li>
+        <li>Google Fonts is a widely trusted, free service. Google's privacy policy for this service is available at <a href="https://developers.google.com/fonts/faq/privacy" target="_blank">Google Fonts Privacy FAQ</a>.</li>
+        <li>If you prefer not to make any external requests, simply leave the Hebrew Font feature disabled (which is the default).</li>
+    </ul>
+
+    <h2>4. Permissions Explanation</h2>
     <p>The extension requires the following permissions for its core functionality:</p>
 
     <h3>Host Permissions (Specific Websites)</h3>
@@ -77,53 +88,55 @@
         <li><strong>gemini.google.com</strong> - To apply RTL styling in Gemini Canvas</li>
         <li><strong>dash.bunny.net</strong> - To apply RTL styling in Bunny.net forms</li>
         <li><strong>app.manychat.com</strong> - To apply RTL styling in ManyChat builders</li>
+        <li><strong>creators.spotify.com</strong> - To apply RTL styling in Spotify Creators comments</li>
     </ul>
-    <p><strong>What the extension does:</strong> Only modifies CSS properties (direction, text-align, padding) to display Hebrew text correctly. Does not read, modify, or access any page content or user data.</p>
+    <p><strong>What the extension does:</strong> Only modifies CSS properties (direction, text-align, padding, font-family) to display Hebrew text correctly. Does not read, modify, or access any page content or user data.</p>
 
     <h3>Storage Permission</h3>
-    <p>Used only to save your enable/disable preference locally.</p>
+    <p>Used only to save your preferences (enable/disable state, font selection) locally.</p>
 
     <h3>Tabs Permission</h3>
-    <p>Used only to detect which website you're currently on (to apply the correct styling). Does not access tab content, URLs, or browsing history.</p>
+    <p>Used only to detect which website you're currently on (to apply the correct styling) and to communicate settings changes to open tabs. Does not access tab content or browsing history.</p>
 
-    <h2>4. Data Sharing</h2>
+    <h2>5. Data Sharing</h2>
     <p><strong>Rotem Daily RTL does NOT share any data with third parties</strong> because it doesn't collect any data in the first place.</p>
     <ul>
         <li>No analytics services</li>
         <li>No advertising networks</li>
-        <li>No external servers or APIs</li>
-        <li>No data transmission of any kind</li>
+        <li>No data transmission of any kind (except the optional Google Fonts request described above)</li>
     </ul>
 
-    <h2>5. How the Extension Works</h2>
-    <p>The extension operates entirely locally in your browser:</p>
+    <h2>6. How the Extension Works</h2>
+    <p>The extension operates locally in your browser:</p>
     <ol>
         <li>Detects Hebrew characters using Unicode pattern matching</li>
         <li>Applies CSS styling (direction: rtl, text-align: right) to elements containing Hebrew</li>
+        <li>Optionally applies a user-selected Hebrew font from Google Fonts</li>
         <li>All processing happens in your browser's memory</li>
-        <li>No data leaves your device</li>
+        <li>No personal data leaves your device</li>
     </ol>
 
-    <h2>6. Security</h2>
-    <p>Since the extension doesn't collect or transmit any data, there is no data to secure or breach. The extension:</p>
+    <h2>7. Security</h2>
+    <p>The extension is designed with security in mind:</p>
     <ul>
-        <li>Contains no external dependencies</li>
+        <li>Contains no external dependencies (pure JavaScript)</li>
         <li>Loads no remote code</li>
-        <li>Makes no network requests</li>
+        <li>The only optional external request is loading font files from Google Fonts (a trusted CDN)</li>
         <li>Operates in a sandboxed browser environment</li>
+        <li>Open source for full transparency</li>
     </ul>
 
-    <h2>7. Children's Privacy</h2>
+    <h2>8. Children's Privacy</h2>
     <p>The extension does not collect data from anyone, including children under 13.</p>
 
-    <h2>8. Changes to This Policy</h2>
-    <p>If we ever change how the extension handles data (which we don't currently do), we will update this policy and notify users through the Chrome Web Store listing.</p>
+    <h2>9. Changes to This Policy</h2>
+    <p>If we ever change how the extension handles data, we will update this policy and notify users through the Chrome Web Store listing.</p>
 
-    <h2>9. Open Source</h2>
+    <h2>10. Open Source</h2>
     <p>The extension's source code is available on GitHub for full transparency:</p>
     <p><a href="https://github.com/omegis/RTL-Chrome-Extension" target="_blank">https://github.com/omegis/RTL-Chrome-Extension</a></p>
 
-    <h2>10. Contact</h2>
+    <h2>11. Contact</h2>
     <p>For questions about this privacy policy or the extension:</p>
     <ul>
         <li>GitHub Issues: <a href="https://github.com/omegis/RTL-Chrome-Extension/issues" target="_blank">Report an issue</a></li>
@@ -131,12 +144,12 @@
     </ul>
 
     <div class="highlight">
-        <strong>Bottom Line:</strong> Rotem Daily RTL is a simple, privacy-focused tool that only styles text. It doesn't know who you are, what you're doing, or where you're browsing. Your privacy is 100% protected.
+        <strong>Bottom Line:</strong> Rotem Daily RTL is a simple, privacy-focused tool that only styles text. It doesn't know who you are, what you're doing, or where you're browsing. Your privacy is protected.
     </div>
 
     <hr style="margin: 40px 0;">
     <p style="text-align: center; color: #666; font-size: 0.9em;">
-        Rotem Daily RTL © 2025 | <a href="https://github.com/omegis/RTL-Chrome-Extension">GitHub</a>
+        Rotem Daily RTL &copy; 2025-2026 | <a href="https://github.com/omegis/RTL-Chrome-Extension">GitHub</a>
     </p>
 </body>
 </html>
