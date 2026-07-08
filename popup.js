@@ -1,7 +1,7 @@
 /**
  * RTL Helper Popup Script
- * Version 2.6.1
- * Last update: 2026-04-18
+ * Version 2.6.2
+ * Last update: 2026-07-08
  * Handles the extension popup UI and communicates with content scripts
  */
 

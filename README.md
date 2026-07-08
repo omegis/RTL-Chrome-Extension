@@ -133,7 +133,7 @@ RTL-Chrome-Extension/
 
 ### Debugging
 - **Console Logs**: Check browser console for extension messages
-- **Extension Logs**: Look for "Rotem Daily RTL v2.6.1 is loaded..." messages
+- **Extension Logs**: Look for "Rotem Daily RTL v2.6.2 is loaded..." messages
 - **Storage Inspector**: Use Chrome DevTools to inspect extension storage
 
 ## Contributing
@@ -155,7 +155,10 @@ We welcome contributions! Here's how you can help:
 
 ## Changelog
 
-### Version 2.6.1 (Current)
+### Version 2.6.2 (Current)
+- Fixed Spotify Creators comments reverting to LTR when expanded via "See more" — RTL is now applied to the comment's block container, which survives Spotify removing the truncated-message wrapper
+
+### Version 2.6.1
 - Fixed Claude RTL skipping responses that open with English proper nouns (e.g. "Opus 4.7:", "Claude API:") — now uses Hebrew-dominant detection instead of first-letter only
 
 ### Version 2.6.0

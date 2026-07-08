@@ -1,7 +1,7 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.6.1: Claude blocks use Hebrew-dominant detection instead of first-letter only.
- * Last update: 2026-04-18
+ * Version 2.6.2: Fix Spotify comment RTL lost when expanding truncated comments.
+ * Last update: 2026-07-08
  * This script runs on Notion, Claude, Gemini, Bunny.net, ManyChat, and Spotify Creators pages
  * and aligns text blocks to RTL if their first letter is a Hebrew character.
  */
@@ -690,6 +690,21 @@ function alignManychatBlocks() {
 }
 
 /**
+ * Applies RTL styling to the block-level container of a Spotify comment span.
+ * The comment text itself is an inline span, so line alignment is controlled
+ * by its parent block element (TruncatedMessage when folded, Container when
+ * expanded).
+ * @param {HTMLElement} span - The Hebrew comment text span
+ */
+function applySpotifyCommentContainerRtl(span) {
+  const container = span.parentElement;
+  if (container && container.tagName === 'DIV' && container.style.direction !== 'rtl') {
+    container.style.direction = 'rtl';
+    container.style.textAlign = 'right';
+  }
+}
+
+/**
  * Applies RTL styling to Spotify Creators comment section
  */
 function alignSpotifyBlocks() {
@@ -705,7 +720,15 @@ function alignSpotifyBlocks() {
   const textElements = document.querySelectorAll(spotifySelectors.join(', '));
 
   textElements.forEach(element => {
+    const isCommentText = element.matches('span[class*="CommentText"]');
+
     if (element.dataset.rtlChecked) {
+      // Expanding a truncated comment removes the styled TruncatedMessage
+      // wrapper div, leaving the inline span in a fresh LTR container where
+      // text-align has no effect \u2014 re-assert RTL on the current container
+      if (isCommentText && element.style.direction === 'rtl') {
+        applySpotifyCommentContainerRtl(element);
+      }
       return;
     }
 
@@ -717,6 +740,10 @@ function alignSpotifyBlocks() {
         element.style.direction = 'rtl';
         element.style.textAlign = 'right';
         applyFont(element);
+
+        if (isCommentText) {
+          applySpotifyCommentContainerRtl(element);
+        }
 
         // For comment wrappers, also handle the internal layout
         if (element.className && element.className.includes('CommentWrapper')) {
@@ -1009,6 +1036,13 @@ function resetRTLStyling() {
         textWrapper.style.textAlign = '';
       }
 
+      // Reset the block container styled for comment text spans
+      if (element.matches('span[class*="CommentText"]') && element.parentElement &&
+          element.parentElement.tagName === 'DIV') {
+        element.parentElement.style.direction = '';
+        element.parentElement.style.textAlign = '';
+      }
+
       delete element.dataset.rtlChecked;
     });
   }
@@ -1137,7 +1171,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.6.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
+    console.log(`Rotem Daily RTL v2.6.2 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
   });
 }
 
