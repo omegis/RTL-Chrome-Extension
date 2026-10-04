@@ -1,8 +1,8 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.6.2: Fix Spotify comment RTL lost when expanding truncated comments.
- * Last update: 2026-07-08
- * This script runs on Notion, Claude, Gemini, Bunny.net, ManyChat, and Spotify Creators pages
+ * Version 2.7.0: Add RTL support for ChatGPT conversations, canvas documents, and composer.
+ * Last update: 2026-10-04
+ * This script runs on Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT pages
  * and aligns text blocks to RTL if their first letter is a Hebrew character.
  */
 
@@ -15,6 +15,15 @@ let bunnyEventListeners = new Map(); // Store event listeners for cleanup
 let manychatEventListeners = new Map(); // Store event listeners for cleanup
 let claudeInputEventListeners = new Map(); // Store event listeners for Claude chat input cleanup
 let geminiInputEventListeners = new Map(); // Store event listeners for Gemini chat input cleanup
+let chatgptDocCounter = 0; // Unique ids for ChatGPT ProseMirror editors
+let chatgptTrailingTimer = null; // Trailing alignment pass after ChatGPT mutation bursts
+
+const CHATGPT_STYLE_ID = 'rtl-helper-chatgpt-style';
+const CHATGPT_TEXT_SELECTORS = [
+  'main :is([class*="MarkdownRoot"], .markdown) :is(p, li, ul, ol, h1, h2, h3, h4, h5, h6, blockquote, table)',
+  'main [data-user-message-bubble] .whitespace-pre-wrap', // User message text
+  'main button span.truncate'                               // Canvas document title
+];
 
 /**
  * Injects Google Fonts stylesheet for Hebrew fonts
@@ -111,7 +120,7 @@ function isHebrewDominant(str) {
 
 /**
  * Determines the current website type
- * @returns {string} 'notion', 'claude', 'gemini', 'bunny', 'manychat', or 'spotify'
+ * @returns {string} 'notion', 'claude', 'gemini', 'bunny', 'manychat', 'spotify', or 'chatgpt'
  */
 function getWebsiteType() {
   const hostname = window.location.hostname;
@@ -121,6 +130,7 @@ function getWebsiteType() {
   if (hostname === 'dash.bunny.net') return 'bunny';
   if (hostname === 'app.manychat.com') return 'manychat';
   if (hostname === 'creators.spotify.com') return 'spotify';
+  if (hostname === 'chatgpt.com') return 'chatgpt';
   return 'unknown';
 }
 
@@ -762,6 +772,89 @@ function alignSpotifyBlocks() {
 }
 
 /**
+ * Sets or clears RTL on a ChatGPT element that is safe to style inline
+ * (not managed by ProseMirror). Clears only styling this extension applied,
+ * so streamed text that stops being Hebrew-dominant reverts correctly.
+ * @param {HTMLElement} element - The element to style
+ * @param {boolean} rtl - Whether the element should be RTL
+ */
+function setChatGPTInlineDirection(element, rtl) {
+  if (rtl) {
+    if (element.style.direction !== 'rtl') {
+      element.style.direction = 'rtl';
+      element.style.textAlign = 'right';
+    }
+    element.dataset.rtlChatgpt = 'true';
+    applyFont(element);
+  } else if (element.dataset.rtlChatgpt) {
+    element.style.direction = '';
+    element.style.textAlign = '';
+    element.style.fontFamily = '';
+    delete element.dataset.rtlChatgpt;
+    delete element.dataset.rtlFont;
+  }
+}
+
+/**
+ * Applies RTL to ChatGPT ProseMirror editors (canvas documents and the chat
+ * composer) through a generated stylesheet. ProseMirror re-renders any child
+ * node whose attributes change, so inline styles on its paragraphs are
+ * discarded within moments — only the editor root can be safely tagged.
+ * Each Hebrew-dominant top-level block gets an :nth-child rule instead.
+ */
+function alignChatGPTProseMirror() {
+  const rules = [];
+
+  document.querySelectorAll('div.ProseMirror').forEach(editor => {
+    if (!editor.dataset.rtlChatgptDoc) {
+      editor.dataset.rtlChatgptDoc = String(++chatgptDocCounter);
+    }
+    const rootSelector = `div.ProseMirror[data-rtl-chatgpt-doc="${editor.dataset.rtlChatgptDoc}"]`;
+
+    Array.from(editor.children).forEach((child, index) => {
+      if (child.tagName === 'PRE') return;
+      if (isHebrewDominant(child.textContent)) {
+        const childSelector = `${rootSelector} > :nth-child(${index + 1})`;
+        rules.push(childSelector, `${childSelector} :is(p, li)`);
+      }
+    });
+  });
+
+  const fontRule = fontEnabled && selectedFont ? `font-family: "${selectedFont}", sans-serif !important;` : '';
+  const css = rules.length > 0
+    ? `${rules.join(',\n')} { direction: rtl !important; text-align: right !important; ${fontRule} }`
+    : '';
+
+  let styleElement = document.getElementById(CHATGPT_STYLE_ID);
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = CHATGPT_STYLE_ID;
+    document.head.appendChild(styleElement);
+  }
+  // Only write on change — the write itself is a DOM mutation that would
+  // otherwise re-trigger the observer in an endless loop
+  if (styleElement.textContent !== css) {
+    styleElement.textContent = css;
+  }
+}
+
+/**
+ * Applies RTL styling to ChatGPT conversations. Uses Hebrew-dominant
+ * detection because ChatGPT's dir="auto" resolves direction from the first
+ * strong character, so Hebrew paragraphs opening with an English word
+ * ("Jev של TypeSafe AI...") render LTR with scrambled word order.
+ */
+function alignChatGPTBlocks() {
+  // Not re-checked via rtlChecked — responses stream in and must be re-evaluated
+  document.querySelectorAll(CHATGPT_TEXT_SELECTORS.join(', ')).forEach(element => {
+    if (element.closest('.ProseMirror')) return;
+    setChatGPTInlineDirection(element, isHebrewDominant(element.textContent));
+  });
+
+  alignChatGPTProseMirror();
+}
+
+/**
  * Main function to align Hebrew blocks based on website type
  */
 function alignHebrewBlocks() {
@@ -781,6 +874,8 @@ function alignHebrewBlocks() {
     alignManychatBlocks();
   } else if (websiteType === 'spotify') {
     alignSpotifyBlocks();
+  } else if (websiteType === 'chatgpt') {
+    alignChatGPTBlocks();
   }
 }
 
@@ -815,6 +910,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       reapplyFonts();
     } else {
       removeAllFonts();
+    }
+
+    // ChatGPT editors are styled through a generated stylesheet, not inline
+    if (extensionEnabled && getWebsiteType() === 'chatgpt') {
+      alignChatGPTBlocks();
     }
 
     console.log(`RTL Helper: Font ${fontEnabled ? 'enabled (' + selectedFont + ')' : 'disabled'}`);
@@ -1045,6 +1145,17 @@ function resetRTLStyling() {
 
       delete element.dataset.rtlChecked;
     });
+  } else if (websiteType === 'chatgpt') {
+    clearTimeout(chatgptTrailingTimer);
+
+    document.querySelectorAll('[data-rtl-chatgpt]').forEach(element => {
+      setChatGPTInlineDirection(element, false);
+    });
+
+    const styleElement = document.getElementById(CHATGPT_STYLE_ID);
+    if (styleElement) {
+      styleElement.remove();
+    }
   }
 }
 
@@ -1085,6 +1196,12 @@ function startObserver() {
         }, 100);
       }
       throttledAlign();
+    } else if (websiteType === 'chatgpt') {
+      throttledAlign();
+      // The throttle is leading-only and drops the final mutation burst (end
+      // of a streamed reply, last keystroke) — schedule a trailing pass
+      clearTimeout(chatgptTrailingTimer);
+      chatgptTrailingTimer = setTimeout(alignHebrewBlocks, 250);
     } else {
       // Use throttled version to reduce processing overhead
       throttledAlign();
@@ -1094,7 +1211,8 @@ function startObserver() {
   observer.observe(document.body, {
     childList: true,
     subtree: true,
-    characterData: websiteType === 'gemini' // Also watch for text changes in Gemini
+    // Also watch for in-place text changes (Gemini canvas, ChatGPT streaming/typing)
+    characterData: websiteType === 'gemini' || websiteType === 'chatgpt'
   });
 }
 
@@ -1102,6 +1220,7 @@ function startObserver() {
  * Stops the mutation observer
  */
 function stopObserver() {
+  clearTimeout(chatgptTrailingTimer);
   if (observer) {
     observer.disconnect();
     observer = null;
@@ -1171,7 +1290,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.6.2 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
+    console.log(`Rotem Daily RTL v2.7.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
   });
 }
 

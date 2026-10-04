@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rotem Daily RTL",
-  "version": "2.6.2",
+  "version": "2.7.0",
   "description": "Automatically applies RTL text direction for Hebrew content on supported websites.",
   "author": "Rotem Bar",
   "homepage_url": "https://github.com/omegis/RTL-Chrome-Extension",
@@ -21,7 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.notion.so/*", "https://claude.ai/*", "https://gemini.google.com/*", "https://dash.bunny.net/*", "https://app.manychat.com/*", "https://creators.spotify.com/*"],
+      "matches": ["https://www.notion.so/*", "https://claude.ai/*", "https://gemini.google.com/*", "https://dash.bunny.net/*", "https://app.manychat.com/*", "https://creators.spotify.com/*", "https://chatgpt.com/*"],
       "js": ["content.js"]
     }
   ]

@@ -1,6 +1,6 @@
 # Rotem Daily RTL - Hebrew RTL Helper
 
-A Chrome browser extension that automatically applies RTL (Right-to-Left) text direction for Hebrew content across multiple productivity platforms: Notion, Claude AI, Gemini Canvas, Bunny.net, ManyChat, and Spotify Creators. Features a simple popup interface with complete user control over functionality, plus an optional Hebrew font selector.
+A Chrome browser extension that automatically applies RTL (Right-to-Left) text direction for Hebrew content across multiple productivity platforms: Notion, Claude AI, Gemini Canvas, Bunny.net, ManyChat, Spotify Creators, and ChatGPT. Features a simple popup interface with complete user control over functionality, plus an optional Hebrew font selector.
 
 ## Features
 
@@ -11,6 +11,7 @@ A Chrome browser extension that automatically applies RTL (Right-to-Left) text d
 - **Bunny.net**: RTL support for forms and textareas in dash.bunny.net
 - **ManyChat**: RTL support for message builders and chat editors with dual-display handling
 - **Spotify Creators**: RTL support for podcast comment sections
+- **ChatGPT**: RTL for conversations, canvas documents, and the chat composer — including Hebrew paragraphs that open with an English word
 - **Smart Detection**: Automatically detects Hebrew text while ignoring emojis and symbols
 
 ### Advanced User Interface
@@ -87,13 +88,14 @@ Install directly from the [Chrome Web Store](https://chromewebstore.google.com/)
 | **Bunny.net** | `https://dash.bunny.net/*` | Form inputs, Textareas, Dynamic detection |
 | **ManyChat** | `https://app.manychat.com/*` | Message builders, Chat editors, Dual-display |
 | **Spotify Creators** | `https://creators.spotify.com/*` | Comment sections, Text spans, Truncated messages |
+| **ChatGPT** | `https://chatgpt.com/*` | Messages, Canvas documents, Chat composer, Streaming responses |
 
 ## Technical Details
 
 ### Architecture
 - **Manifest Version**: 3 (latest Chrome extension standard)
 - **Permissions**: `storage` (for preferences), `tabs` (for website detection)
-- **Content Scripts**: Runs on Notion, Claude, Gemini, Bunny.net, ManyChat, and Spotify Creators
+- **Content Scripts**: Runs on Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT
 - **No Background Scripts**: Lightweight, efficient operation
 - **Memory Optimized**: Event listener management with proper cleanup
 - **CPU Efficient**: Throttled mutation observers and minimal periodic checks
@@ -155,7 +157,11 @@ We welcome contributions! Here's how you can help:
 
 ## Changelog
 
-### Version 2.6.2 (Current)
+### Version 2.7.0 (Current)
+- Added RTL support for ChatGPT (`chatgpt.com`): chat messages, canvas documents, document titles, and the chat composer
+- Hebrew-dominant detection fixes paragraphs that start with an English word (e.g. "Jev של TypeSafe AI..."), which ChatGPT's `dir="auto"` rendered LTR with scrambled word order
+
+### Version 2.6.2
 - Fixed Spotify Creators comments reverting to LTR when expanded via "See more" — RTL is now applied to the comment's block container, which survives Spotify removing the truncated-message wrapper
 
 ### Version 2.6.1

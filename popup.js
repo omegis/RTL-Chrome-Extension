@@ -1,7 +1,7 @@
 /**
  * RTL Helper Popup Script
- * Version 2.6.2
- * Last update: 2026-07-08
+ * Version 2.7.0
+ * Last update: 2026-10-04
  * Handles the extension popup UI and communicates with content scripts
  */
 
@@ -39,7 +39,8 @@ document.getElementById('toggle-button').addEventListener('click', () => {
             tab.url.includes('gemini.google.com') ||
             tab.url.includes('dash.bunny.net') ||
             tab.url.includes('app.manychat.com') ||
-            tab.url.includes('creators.spotify.com')
+            tab.url.includes('creators.spotify.com') ||
+            tab.url.includes('chatgpt.com')
           )) {
             chrome.tabs.sendMessage(tab.id, { 
               action: 'toggleExtension', 
@@ -87,7 +88,8 @@ function sendFontMessage(fontEnabled, selectedFont) {
         tab.url.includes('gemini.google.com') ||
         tab.url.includes('dash.bunny.net') ||
         tab.url.includes('app.manychat.com') ||
-        tab.url.includes('creators.spotify.com')
+        tab.url.includes('creators.spotify.com') ||
+        tab.url.includes('chatgpt.com')
       )) {
         chrome.tabs.sendMessage(tab.id, {
           action: 'updateFont',
