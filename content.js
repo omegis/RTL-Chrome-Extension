@@ -1,8 +1,9 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.7.0: Add RTL support for ChatGPT conversations, canvas documents, and composer.
+ * Version 2.8.0: Load on all sites (idle on unknown ones) to host custom-rules.js; shared setInlineDirection.
  * Last update: 2026-10-04
- * This script runs on Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT pages
+ * Built-in support for Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT pages.
+ * On other sites it only provides shared helpers and state for custom-rules.js
  * and aligns text blocks to RTL if their first letter is a Hebrew character.
  */
 
@@ -772,25 +773,27 @@ function alignSpotifyBlocks() {
 }
 
 /**
- * Sets or clears RTL on a ChatGPT element that is safe to style inline
- * (not managed by ProseMirror). Clears only styling this extension applied,
- * so streamed text that stops being Hebrew-dominant reverts correctly.
+ * Sets or clears inline RTL on an element. Clears only styling this extension
+ * applied (tracked by a dataset flag), so content that stops being
+ * Hebrew-dominant — streamed text, edited inputs — reverts correctly.
+ * Shared with custom-rules.js.
  * @param {HTMLElement} element - The element to style
  * @param {boolean} rtl - Whether the element should be RTL
+ * @param {string} flag - Dataset key marking ownership (e.g. 'rtlChatgpt')
  */
-function setChatGPTInlineDirection(element, rtl) {
+function setInlineDirection(element, rtl, flag) {
   if (rtl) {
     if (element.style.direction !== 'rtl') {
       element.style.direction = 'rtl';
       element.style.textAlign = 'right';
     }
-    element.dataset.rtlChatgpt = 'true';
+    element.dataset[flag] = 'true';
     applyFont(element);
-  } else if (element.dataset.rtlChatgpt) {
+  } else if (element.dataset[flag]) {
     element.style.direction = '';
     element.style.textAlign = '';
     element.style.fontFamily = '';
-    delete element.dataset.rtlChatgpt;
+    delete element.dataset[flag];
     delete element.dataset.rtlFont;
   }
 }
@@ -848,7 +851,7 @@ function alignChatGPTBlocks() {
   // Not re-checked via rtlChecked — responses stream in and must be re-evaluated
   document.querySelectorAll(CHATGPT_TEXT_SELECTORS.join(', ')).forEach(element => {
     if (element.closest('.ProseMirror')) return;
-    setChatGPTInlineDirection(element, isHebrewDominant(element.textContent));
+    setInlineDirection(element, isHebrewDominant(element.textContent), 'rtlChatgpt');
   });
 
   alignChatGPTProseMirror();
@@ -904,7 +907,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     selectedFont = request.selectedFont;
 
     if (fontEnabled) {
-      injectGoogleFonts();
+      if (getWebsiteType() !== 'unknown') {
+        injectGoogleFonts();
+      }
       // Remove old fonts first, then reapply with new selection
       removeAllFonts();
       reapplyFonts();
@@ -1149,7 +1154,7 @@ function resetRTLStyling() {
     clearTimeout(chatgptTrailingTimer);
 
     document.querySelectorAll('[data-rtl-chatgpt]').forEach(element => {
-      setChatGPTInlineDirection(element, false);
+      setInlineDirection(element, false, 'rtlChatgpt');
     });
 
     const styleElement = document.getElementById(CHATGPT_STYLE_ID);
@@ -1168,6 +1173,11 @@ function startObserver() {
   }
 
   const websiteType = getWebsiteType();
+  // content.js loads on every site for custom-rules.js; stay idle on unknown ones
+  if (websiteType === 'unknown') {
+    observer = null;
+    return;
+  }
 
   // Create throttled version of alignHebrewBlocks
   const throttledAlign = throttle(alignHebrewBlocks, 200);
@@ -1237,8 +1247,9 @@ function initializeExtension() {
     fontEnabled = result.fontEnabled === true; // Default to false
     selectedFont = result.selectedFont || 'Frank Ruhl Libre';
 
-    // Inject Google Fonts if font feature is enabled
-    if (fontEnabled) {
+    // Inject Google Fonts if font feature is enabled (custom-rules.js handles
+    // unknown sites only when they have rules)
+    if (fontEnabled && getWebsiteType() !== 'unknown') {
       injectGoogleFonts();
     }
     
@@ -1290,7 +1301,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    console.log(`Rotem Daily RTL v2.7.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
+    if (websiteType !== 'unknown') console.log(`Rotem Daily RTL v2.8.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
   });
 }
 

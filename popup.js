@@ -1,8 +1,9 @@
 /**
  * RTL Helper Popup Script
- * Version 2.7.0
+ * Version 2.8.0
  * Last update: 2026-10-04
- * Handles the extension popup UI and communicates with content scripts
+ * Handles the extension popup UI and communicates with content scripts,
+ * including the custom RTL element picker and per-site rule list
  */
 
 // Get current state when popup opens
@@ -30,27 +31,8 @@ document.getElementById('toggle-button').addEventListener('click', () => {
     chrome.storage.local.set({ rtlHelperEnabled: newEnabled }, () => {
       updateUI(newEnabled);
       
-      // Send message to all tabs to update their state
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          if (tab.url && (
-            tab.url.includes('notion.so') ||
-            tab.url.includes('claude.ai') ||
-            tab.url.includes('gemini.google.com') ||
-            tab.url.includes('dash.bunny.net') ||
-            tab.url.includes('app.manychat.com') ||
-            tab.url.includes('creators.spotify.com') ||
-            tab.url.includes('chatgpt.com')
-          )) {
-            chrome.tabs.sendMessage(tab.id, { 
-              action: 'toggleExtension', 
-              enabled: newEnabled 
-            }).catch(() => {
-              // Ignore errors for tabs that don't have content script loaded
-            });
-          }
-        });
-      });
+      // Custom rules can exist on any site, so every tab gets the message
+      broadcastToTabs({ action: 'toggleExtension', enabled: newEnabled });
     });
   });
 });
@@ -78,28 +60,113 @@ document.getElementById('font-select').addEventListener('change', (e) => {
   });
 });
 
-// Send font settings to all relevant tabs
+// Send font settings to all tabs
 function sendFontMessage(fontEnabled, selectedFont) {
+  broadcastToTabs({ action: 'updateFont', fontEnabled, selectedFont });
+}
+
+/**
+ * Sends a message to every tab, ignoring tabs without the content script
+ * (chrome:// pages, tabs opened before the extension was installed/updated).
+ * @param {Object} message
+ */
+function broadcastToTabs(message) {
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach(tab => {
-      if (tab.url && (
-        tab.url.includes('notion.so') ||
-        tab.url.includes('claude.ai') ||
-        tab.url.includes('gemini.google.com') ||
-        tab.url.includes('dash.bunny.net') ||
-        tab.url.includes('app.manychat.com') ||
-        tab.url.includes('creators.spotify.com') ||
-        tab.url.includes('chatgpt.com')
-      )) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'updateFont',
-          fontEnabled,
-          selectedFont
-        }).catch(() => {});
-      }
+      chrome.tabs.sendMessage(tab.id, message).catch(() => {});
     });
   });
 }
+
+// ---------------------------------------------------------------------------
+// Custom RTL rules (element picker)
+// ---------------------------------------------------------------------------
+
+const CUSTOM_RULES_KEY = 'customRtlRules';
+
+/**
+ * Returns the hostname of a tab the content script can run on, or null.
+ * @param {chrome.tabs.Tab} tab
+ * @returns {string|null}
+ */
+function getPickableHostname(tab) {
+  if (!tab || !tab.url) return null;
+  try {
+    const url = new URL(tab.url);
+    return ['http:', 'https:', 'file:'].includes(url.protocol) ? (url.hostname || 'file') : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function setPickerMessage(text) {
+  document.getElementById('picker-message').textContent = text;
+}
+
+function renderCustomRules(hostname) {
+  const list = document.getElementById('rules-list');
+  list.textContent = '';
+
+  chrome.storage.local.get([CUSTOM_RULES_KEY], (result) => {
+    const allRules = result[CUSTOM_RULES_KEY] || {};
+    const siteRules = Array.isArray(allRules[hostname]) ? allRules[hostname] : [];
+
+    document.getElementById('rules-count').textContent = siteRules.length ? `(${siteRules.length})` : '';
+
+    siteRules.forEach(rule => {
+      const item = document.createElement('li');
+      item.className = 'rule-item';
+
+      const selector = document.createElement('span');
+      selector.className = 'rule-selector';
+      selector.textContent = rule.selector;
+      selector.title = rule.selector;
+
+      const remove = document.createElement('button');
+      remove.className = 'rule-remove';
+      remove.textContent = '×';
+      remove.title = 'Remove this rule';
+      remove.addEventListener('click', () => removeCustomRule(hostname, rule.id));
+
+      item.append(selector, remove);
+      list.appendChild(item);
+    });
+  });
+}
+
+function removeCustomRule(hostname, ruleId) {
+  chrome.storage.local.get([CUSTOM_RULES_KEY], (result) => {
+    const allRules = result[CUSTOM_RULES_KEY] || {};
+    const remaining = (allRules[hostname] || []).filter(rule => rule.id !== ruleId);
+    if (remaining.length) {
+      allRules[hostname] = remaining;
+    } else {
+      delete allRules[hostname];
+    }
+    // Tabs on this site re-apply via storage.onChanged
+    chrome.storage.local.set({ [CUSTOM_RULES_KEY]: allRules }, () => renderCustomRules(hostname));
+  });
+}
+
+chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+  const pickButton = document.getElementById('pick-button');
+  const hostname = getPickableHostname(tab);
+
+  if (!hostname) {
+    pickButton.disabled = true;
+    setPickerMessage("Can't run on this page");
+    return;
+  }
+
+  document.getElementById('rules-host').textContent = hostname;
+  renderCustomRules(hostname);
+
+  pickButton.addEventListener('click', () => {
+    chrome.tabs.sendMessage(tab.id, { action: 'startPicker' })
+      .then(() => window.close())
+      .catch(() => setPickerMessage('Reload this page, then try again'));
+  });
+});
 
 // Update UI based on state
 function updateUI(enabled) {

@@ -12,6 +12,7 @@ A Chrome browser extension that automatically applies RTL (Right-to-Left) text d
 - **ManyChat**: RTL support for message builders and chat editors with dual-display handling
 - **Spotify Creators**: RTL support for podcast comment sections
 - **ChatGPT**: RTL for conversations, canvas documents, and the chat composer — including Hebrew paragraphs that open with an English word
+- **Any website — Element Picker**: Click "Pick element to fix RTL" in the popup, then click any element. That element and similar ones on the site get RTL whenever their text is mostly Hebrew — on every visit. Manage or remove rules per site from the popup
 - **Smart Detection**: Automatically detects Hebrew text while ignoring emojis and symbols
 
 ### Advanced User Interface
@@ -95,7 +96,7 @@ Install directly from the [Chrome Web Store](https://chromewebstore.google.com/)
 ### Architecture
 - **Manifest Version**: 3 (latest Chrome extension standard)
 - **Permissions**: `storage` (for preferences), `tabs` (for website detection)
-- **Content Scripts**: Runs on Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT
+- **Content Scripts**: `content.js` + `custom-rules.js` load on all sites (`<all_urls>`); built-in logic runs only on Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT, and custom rules only start an observer on sites that have rules
 - **No Background Scripts**: Lightweight, efficient operation
 - **Memory Optimized**: Event listener management with proper cleanup
 - **CPU Efficient**: Throttled mutation observers and minimal periodic checks
@@ -157,7 +158,13 @@ We welcome contributions! Here's how you can help:
 
 ## Changelog
 
-### Version 2.7.0 (Current)
+### Version 2.8.0 (Current)
+- Added **Element Picker**: pick any element on any website to fix its RTL; similar elements are matched too, with Hebrew-dominant auto-detection
+- Popup lists the current site's custom rules with a remove button
+- Extension now loads on all sites (install permission: "Read and change your data on all websites"); idle on sites without built-in support or custom rules
+- New storage key `customRtlRules` (`{ hostname: [{ id, selector, createdAt }] }`)
+
+### Version 2.7.0
 - Added RTL support for ChatGPT (`chatgpt.com`): chat messages, canvas documents, document titles, and the chat composer
 - Hebrew-dominant detection fixes paragraphs that start with an English word (e.g. "Jev של TypeSafe AI..."), which ChatGPT's `dir="auto"` rendered LTR with scrambled word order
 
