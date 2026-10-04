@@ -1,6 +1,6 @@
 /**
  * RTL Helper Popup Script
- * Version 2.8.0
+ * Version 2.8.1
  * Last update: 2026-10-04
  * Handles the extension popup UI and communicates with content scripts,
  * including the custom RTL element picker and per-site rule list
@@ -85,6 +85,17 @@ function broadcastToTabs(message) {
 const CUSTOM_RULES_KEY = 'customRtlRules';
 
 /**
+ * Reads the rules map from a storage result, tolerating a corrupted value.
+ * Mirrors readRulesMap() in custom-rules.js.
+ * @param {Object} result chrome.storage.local.get result
+ * @returns {Object} hostname -> rules array
+ */
+function readRulesMap(result) {
+  const stored = result[CUSTOM_RULES_KEY];
+  return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+}
+
+/**
  * Returns the hostname of a tab the content script can run on, or null.
  * @param {chrome.tabs.Tab} tab
  * @returns {string|null}
@@ -93,6 +104,7 @@ function getPickableHostname(tab) {
   if (!tab || !tab.url) return null;
   try {
     const url = new URL(tab.url);
+    // 'file' fallback must match getRulesHostKey() in custom-rules.js
     return ['http:', 'https:', 'file:'].includes(url.protocol) ? (url.hostname || 'file') : null;
   } catch (error) {
     return null;
@@ -108,7 +120,7 @@ function renderCustomRules(hostname) {
   list.textContent = '';
 
   chrome.storage.local.get([CUSTOM_RULES_KEY], (result) => {
-    const allRules = result[CUSTOM_RULES_KEY] || {};
+    const allRules = readRulesMap(result);
     const siteRules = Array.isArray(allRules[hostname]) ? allRules[hostname] : [];
 
     document.getElementById('rules-count').textContent = siteRules.length ? `(${siteRules.length})` : '';
@@ -136,8 +148,9 @@ function renderCustomRules(hostname) {
 
 function removeCustomRule(hostname, ruleId) {
   chrome.storage.local.get([CUSTOM_RULES_KEY], (result) => {
-    const allRules = result[CUSTOM_RULES_KEY] || {};
-    const remaining = (allRules[hostname] || []).filter(rule => rule.id !== ruleId);
+    const allRules = readRulesMap(result);
+    const siteRules = Array.isArray(allRules[hostname]) ? allRules[hostname] : [];
+    const remaining = siteRules.filter(rule => rule && rule.id !== ruleId);
     if (remaining.length) {
       allRules[hostname] = remaining;
     } else {

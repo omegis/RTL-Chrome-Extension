@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - Custom RTL Rules & Element Picker
- * Version 2.8.0
+ * Version 2.8.1
  * Last update: 2026-10-04
  * Lets the user pick any element on any website. Elements matching the saved
  * selector get RTL whenever their text is Hebrew-dominant, on every visit.
@@ -17,6 +17,15 @@ const PICKER_Z_INDEX = '2147483647';
 const MAX_SIMILAR_MATCHES = 50;
 const MAX_SELECTOR_DEPTH = 5;
 const SIMILARITY_ATTRIBUTES = ['data-testid', 'data-test-id', 'data-qa'];
+// Rich-text editors that own their DOM and may re-render restyled children:
+// ProseMirror/tiptap, Lexical, Slate, Draft.js, Quill
+const RICH_TEXT_EDITOR_ROOTS = [
+  '.ProseMirror',
+  '[data-lexical-editor="true"]',
+  '[data-slate-editor="true"]',
+  '.public-DraftEditor-content',
+  '.ql-editor'
+].join(', ');
 
 let customRules = [];          // Rules for the current hostname
 let customEnabled = true;      // Mirrors rtlHelperEnabled
@@ -24,6 +33,15 @@ let customObserver = null;
 let customTrailingTimer = null;
 let customInputListener = null;
 let pickerState = null;        // Non-null while the picker is active
+
+/**
+ * Storage key for this site's rules. file:// pages have no hostname — must
+ * match getPickableHostname() in popup.js so the popup can list/remove them.
+ * @returns {string}
+ */
+function getRulesHostKey() {
+  return window.location.hostname || 'file';
+}
 
 // ---------------------------------------------------------------------------
 // Rule application
@@ -58,7 +76,31 @@ function getElementText(element) {
   return element.textContent || '';
 }
 
+/**
+ * Returns the rich-text editor root if the element is inside one (not the
+ * root itself). Editors re-render children whose attributes change, so
+ * styling them would loop: style -> re-render -> observer -> style.
+ * The root itself keeps inline styles (verified on ChatGPT's ProseMirror).
+ * @param {HTMLElement} element
+ * @returns {HTMLElement|null}
+ */
+function getEnclosingEditorRoot(element) {
+  const root = element.closest(RICH_TEXT_EDITOR_ROOTS);
+  return root && root !== element ? root : null;
+}
+
+/**
+ * Reads the rules map from a storage result, tolerating a corrupted value.
+ * @param {Object} result chrome.storage.local.get result
+ * @returns {Object} hostname -> rules array
+ */
+function readRulesMap(result) {
+  const stored = result[CUSTOM_RULES_KEY];
+  return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+}
+
 function applyCustomRule(element) {
+  if (getEnclosingEditorRoot(element)) return;
   setInlineDirection(element, isHebrewDominant(getElementText(element)), CUSTOM_FLAG);
 }
 
@@ -134,8 +176,8 @@ function refreshCustomRules() {
  */
 function loadCustomRules() {
   chrome.storage.local.get([CUSTOM_RULES_KEY, 'rtlHelperEnabled'], (result) => {
-    const allRules = result[CUSTOM_RULES_KEY] || {};
-    const siteRules = allRules[window.location.hostname];
+    const allRules = readRulesMap(result);
+    const siteRules = allRules[getRulesHostKey()];
     customRules = Array.isArray(siteRules) ? siteRules.filter(r => r && typeof r.selector === 'string') : [];
     customEnabled = result.rtlHelperEnabled !== false;
     refreshCustomRules();
@@ -149,8 +191,8 @@ function loadCustomRules() {
  */
 function saveCustomRule(selector, callback) {
   chrome.storage.local.get([CUSTOM_RULES_KEY], (result) => {
-    const allRules = result[CUSTOM_RULES_KEY] || {};
-    const hostname = window.location.hostname;
+    const allRules = readRulesMap(result);
+    const hostname = getRulesHostKey();
     const siteRules = Array.isArray(allRules[hostname]) ? allRules[hostname] : [];
 
     if (siteRules.some(rule => rule.selector === selector)) {
@@ -280,7 +322,12 @@ function showPickerToast(message) {
   setTimeout(() => toast.remove(), 2500);
 }
 
-function updatePickerHighlight(target) {
+/**
+ * Moves the highlight box and label onto the target's current position.
+ * Cheap — no DOM queries — so it can run on every scroll.
+ * @param {HTMLElement} target
+ */
+function positionPickerHighlight(target) {
   const { highlight, label } = pickerState;
   const rect = target.getBoundingClientRect();
   Object.assign(highlight.style, {
@@ -290,6 +337,12 @@ function updatePickerHighlight(target) {
     height: `${rect.height}px`,
     display: 'block'
   });
+  label.style.top = `${Math.max(0, rect.top - 26)}px`;
+  label.style.left = `${Math.max(0, rect.left)}px`;
+  label.style.display = 'block';
+}
+
+function updatePickerHighlight(target) {
   const similar = (() => {
     try {
       return document.querySelectorAll(generateSimilarSelector(target)).length;
@@ -297,10 +350,8 @@ function updatePickerHighlight(target) {
       return 1;
     }
   })();
-  label.textContent = `${target.tagName.toLowerCase()} · ${similar} similar · click to fix RTL · Esc to cancel`;
-  label.style.top = `${Math.max(0, rect.top - 26)}px`;
-  label.style.left = `${Math.max(0, rect.left)}px`;
-  label.style.display = 'block';
+  pickerState.label.textContent = `${target.tagName.toLowerCase()} · ${similar} similar · click to fix RTL · Esc to cancel`;
+  positionPickerHighlight(target);
 }
 
 function stopPicker() {
@@ -315,21 +366,24 @@ function stopPicker() {
 }
 
 function finishPicker(target) {
-  const selector = generateSimilarSelector(target);
+  // Inside a rich-text editor only the editor root can be styled safely
+  const selector = generateSimilarSelector(getEnclosingEditorRoot(target) || target);
   stopPicker();
 
-  if (!customEnabled) {
-    showPickerToast('RTL Helper is disabled — enable it to apply the rule');
-  }
-
   saveCustomRule(selector, (added) => {
-    let count = 0;
-    try {
-      count = document.querySelectorAll(selector).length;
-    } catch (error) {
-      count = 1;
+    if (!added) {
+      showPickerToast('This element already has an RTL rule');
+    } else if (!customEnabled) {
+      showPickerToast('Rule saved — enable RTL Helper to apply it');
+    } else {
+      let count = 0;
+      try {
+        count = document.querySelectorAll(selector).length;
+      } catch (error) {
+        count = 1;
+      }
+      showPickerToast(`RTL fixed for ${count} element${count === 1 ? '' : 's'}`);
     }
-    showPickerToast(added ? `RTL fixed for ${count} element${count === 1 ? '' : 's'}` : 'This element already has an RTL rule');
   });
 }
 
@@ -366,9 +420,12 @@ function startPicker() {
   const handlers = {
     mousemove: (event) => {
       // Selector generation queries the DOM — only redo it on a new target
-      if (isPickable(event.target) && event.target !== pickerState.lastTarget) {
-        pickerState.lastTarget = event.target;
-        updatePickerHighlight(event.target);
+      if (!isPickable(event.target)) return;
+      // Highlight what will actually be saved (editor root inside rich-text editors)
+      const target = getEnclosingEditorRoot(event.target) || event.target;
+      if (target !== pickerState.lastTarget) {
+        pickerState.lastTarget = target;
+        updatePickerHighlight(target);
       }
     },
     click: (event) => {
@@ -379,6 +436,10 @@ function startPicker() {
     mouseup: block,
     pointerdown: block,
     pointerup: block,
+    // Capture phase also catches scrolling inner containers (scroll doesn't bubble)
+    scroll: () => {
+      if (pickerState.lastTarget) positionPickerHighlight(pickerState.lastTarget);
+    },
     keydown: (event) => {
       if (event.key === 'Escape') {
         block(event);

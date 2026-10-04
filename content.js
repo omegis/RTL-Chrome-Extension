@@ -1,6 +1,6 @@
 /**
  * Rotem Daily RTL - RTL Helper for Multiple Websites
- * Version 2.8.0: Load on all sites (idle on unknown ones) to host custom-rules.js; shared setInlineDirection.
+ * Version 2.8.1: setInlineDirection keeps RTL while another owner (built-in or custom rule) still claims it.
  * Last update: 2026-10-04
  * Built-in support for Notion, Claude, Gemini, Bunny.net, ManyChat, Spotify Creators, and ChatGPT pages.
  * On other sites it only provides shared helpers and state for custom-rules.js
@@ -772,10 +772,15 @@ function alignSpotifyBlocks() {
   });
 }
 
+// Dataset flags of every owner that styles via setInlineDirection
+const INLINE_DIRECTION_FLAGS = ['rtlChatgpt', 'rtlCustom'];
+
 /**
  * Sets or clears inline RTL on an element. Clears only styling this extension
  * applied (tracked by a dataset flag), so content that stops being
  * Hebrew-dominant — streamed text, edited inputs — reverts correctly.
+ * An element can be owned by both a built-in site rule and a custom rule;
+ * styles are only removed once no owner still claims the element.
  * Shared with custom-rules.js.
  * @param {HTMLElement} element - The element to style
  * @param {boolean} rtl - Whether the element should be RTL
@@ -790,10 +795,11 @@ function setInlineDirection(element, rtl, flag) {
     element.dataset[flag] = 'true';
     applyFont(element);
   } else if (element.dataset[flag]) {
+    delete element.dataset[flag];
+    if (INLINE_DIRECTION_FLAGS.some(other => element.dataset[other])) return;
     element.style.direction = '';
     element.style.textAlign = '';
     element.style.fontFamily = '';
-    delete element.dataset[flag];
     delete element.dataset.rtlFont;
   }
 }
@@ -1301,7 +1307,7 @@ function initializeExtension() {
     }
     
     const websiteType = getWebsiteType();
-    if (websiteType !== 'unknown') console.log(`Rotem Daily RTL v2.8.0 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
+    if (websiteType !== 'unknown') console.log(`Rotem Daily RTL v2.8.1 is loaded for ${websiteType}! Status: ${extensionEnabled ? 'ENABLED' : 'DISABLED'}, Font: ${fontEnabled ? selectedFont : 'disabled'}`);
   });
 }
 

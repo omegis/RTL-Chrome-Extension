@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Rotem Daily RTL",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "description": "Automatically applies RTL text direction for Hebrew content on supported websites, plus any element you pick on any site.",
   "author": "Rotem Bar",
   "homepage_url": "https://github.com/omegis/RTL-Chrome-Extension",

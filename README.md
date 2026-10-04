@@ -79,6 +79,19 @@ Install directly from the [Chrome Web Store](https://chromewebstore.google.com/)
 3. Select your preferred font from the dropdown
 4. The font is applied instantly to all Hebrew RTL text on the page
 
+### Element Picker (Any Website)
+1. Open the page and click the extension icon
+2. Click **Pick element to fix RTL**
+3. Hover the page — a green box shows the element and how many similar ones will match; click to save, Esc to cancel
+4. Matching elements switch to RTL whenever their text is mostly Hebrew, on every visit to that site
+5. Remove a rule with **×** in the popup's rule list
+
+**Known limitations**
+- Rules are CSS selectors. Sites that regenerate class names on each deploy can break a saved rule — pick the element again if it stops working
+- Inside rich-text editors (ProseMirror, Lexical, Slate, Draft.js, Quill) the whole editor is picked, not a single paragraph — editors rebuild their paragraphs and would discard per-paragraph styling
+- Top frame only — elements inside iframes can't be picked
+- Tabs opened before installing/updating the extension must be reloaded once
+
 ### Supported Websites
 
 | Website | URL Pattern | Features |
@@ -110,7 +123,8 @@ Install directly from the [Chrome Web Store](https://chromewebstore.google.com/)
 ```
 RTL-Chrome-Extension/
 ├── manifest.json          # Extension configuration
-├── content.js             # Main functionality script
+├── content.js             # Main functionality script (built-in sites + shared helpers)
+├── custom-rules.js        # Element picker and per-site custom RTL rules (all sites)
 ├── popup.html             # Extension popup interface
 ├── popup.js               # Popup functionality
 ├── icon16.png             # Extension icon (16x16)
@@ -158,7 +172,15 @@ We welcome contributions! Here's how you can help:
 
 ## Changelog
 
-### Version 2.8.0 (Current)
+### Version 2.8.1 (Current)
+- Fixed an endless restyle loop when picking a paragraph inside a rich-text editor — the picker now selects the editor root (ProseMirror, Lexical, Slate, Draft.js, Quill)
+- Fixed rules on local `file://` pages not showing in the popup
+- Fixed misleading "RTL fixed" toast when the extension is disabled
+- Picker highlight follows the element while scrolling
+- Turning off one RTL source (built-in or custom rule) no longer removes RTL another source still applies
+- Rule storage reads tolerate corrupted data
+
+### Version 2.8.0
 - Added **Element Picker**: pick any element on any website to fix its RTL; similar elements are matched too, with Hebrew-dominant auto-detection
 - Popup lists the current site's custom rules with a remove button
 - Extension now loads on all sites (install permission: "Read and change your data on all websites"); idle on sites without built-in support or custom rules

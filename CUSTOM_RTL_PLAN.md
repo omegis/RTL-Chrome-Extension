@@ -38,7 +38,7 @@ Let the user pick any element on any website; matching elements get RTL
 
 ## Known limitations
 - Top frame only (no iframes).
-- Inside ProseMirror editors, pick the editor itself, not a paragraph —
-  ProseMirror discards inline styles on its children.
+- Inside rich-text editors (ProseMirror, Lexical, Slate, Draft.js, Quill) the picker selects the editor root —
+  editors discard inline styles on their children (enforced since v2.8.1).
 - Tabs open before install/update must be reloaded once.
 - Sites that rebuild class names on deploy may break saved selectors.
